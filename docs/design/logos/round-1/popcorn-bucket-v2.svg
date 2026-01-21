@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Logo Concept: Popcorn Bucket v2 -->
+  <!-- Fixed: stripes contained within bucket, popcorn occluded by rim -->
+
+  <defs>
+    <!-- Clip path to contain stripes within bucket shape -->
+    <clipPath id="bucketClip">
+      <path d="M18 28 L14 52 L50 52 L46 28 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Bucket body (trapezoid shape) -->
+  <path d="M18 28 L14 52 L50 52 L46 28 Z" fill="#9333EA"/>
+
+  <!-- Bucket stripes - now clipped to bucket boundary -->
+  <g clip-path="url(#bucketClip)">
+    <rect x="18" y="28" width="4" height="26" fill="#7E22CE"/>
+    <rect x="26" y="28" width="4" height="26" fill="#7E22CE"/>
+    <rect x="34" y="28" width="4" height="26" fill="#7E22CE"/>
+    <rect x="42" y="28" width="4" height="26" fill="#7E22CE"/>
+  </g>
+
+  <!-- Popcorn pieces - positioned BEHIND the rim (drawn first) -->
+  <!-- Back layer popcorn (will be partially covered by rim) -->
+  <circle cx="24" cy="22" r="6" fill="#FEF3C7"/>
+  <circle cx="32" cy="18" r="7" fill="#FDE68A"/>
+  <circle cx="40" cy="22" r="6" fill="#FEF3C7"/>
+  <circle cx="28" cy="14" r="5" fill="#FBBF24"/>
+  <circle cx="36" cy="13" r="5" fill="#FDE68A"/>
+
+  <!-- Bucket rim - drawn LAST to occlude bottom of popcorn -->
+  <rect x="15" y="25" width="34" height="5" rx="1" fill="#6B21A8"/>
+
+  <!-- Rim highlight -->
+  <rect x="15" y="25" width="34" height="2" rx="1" fill="#7E22CE"/>
+</svg>

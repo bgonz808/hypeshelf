@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Logo Concept: Abstract/Geometric Popcorn Kernel -->
+  <!-- Modern, minimal interpretation - could be popcorn or a "burst" of recommendations -->
+
+  <!-- Central burst shape -->
+  <path d="M32 8
+           Q40 20 48 24
+           Q40 28 44 40
+           Q36 36 32 48
+           Q28 36 20 40
+           Q24 28 16 24
+           Q24 20 32 8 Z"
+        fill="#9333EA"/>
+
+  <!-- Inner highlight -->
+  <path d="M32 16
+           Q36 24 40 26
+           Q36 28 38 34
+           Q34 32 32 38
+           Q30 32 26 34
+           Q28 28 24 26
+           Q28 24 32 16 Z"
+        fill="#C084FC"/>
+
+  <!-- Center dot -->
+  <circle cx="32" cy="28" r="3" fill="#581C87"/>
+
+  <!-- Subtle glow ring -->
+  <circle cx="32" cy="28" r="24" stroke="#9333EA" stroke-width="1" stroke-opacity="0.3" fill="none"/>
+</svg>

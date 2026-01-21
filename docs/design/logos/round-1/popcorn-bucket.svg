@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Logo Concept: Mini Popcorn Bucket -->
+  <!-- Simplified, geometric bucket with popcorn overflow -->
+
+  <!-- Bucket body (trapezoid shape) -->
+  <path d="M18 28 L14 52 L50 52 L46 28 Z" fill="#9333EA"/>
+
+  <!-- Bucket stripes (classic movie theater) -->
+  <path d="M20 32 L17 48 L21 48 L24 32 Z" fill="#7E22CE"/>
+  <path d="M28 32 L25 48 L29 48 L32 32 Z" fill="#7E22CE"/>
+  <path d="M36 32 L33 48 L37 48 L40 32 Z" fill="#7E22CE"/>
+  <path d="M44 32 L41 48 L45 48 L47 32 Z" fill="#7E22CE"/>
+
+  <!-- Bucket rim -->
+  <rect x="16" y="26" width="32" height="4" rx="1" fill="#6B21A8"/>
+
+  <!-- Popcorn overflow (simplified circles) -->
+  <circle cx="24" cy="20" r="6" fill="#FEF3C7"/>
+  <circle cx="32" cy="16" r="7" fill="#FDE68A"/>
+  <circle cx="40" cy="20" r="6" fill="#FEF3C7"/>
+  <circle cx="28" cy="12" r="5" fill="#FBBF24"/>
+  <circle cx="36" cy="11" r="5" fill="#FDE68A"/>
+</svg>

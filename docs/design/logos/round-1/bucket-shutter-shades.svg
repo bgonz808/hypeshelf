@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Logo: Popcorn Bucket with Shutter Shades -->
+  <!-- Maximum swagger. Bucket is the mascot. -->
+
+  <defs>
+    <clipPath id="bucketClip3">
+      <path d="M18 32 L14 54 L50 54 L46 32 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Bucket body -->
+  <path d="M18 32 L14 54 L50 54 L46 32 Z" fill="#9333EA"/>
+
+  <!-- Bucket stripes - clipped -->
+  <g clip-path="url(#bucketClip3)">
+    <rect x="18" y="32" width="4" height="24" fill="#7E22CE"/>
+    <rect x="26" y="32" width="4" height="24" fill="#7E22CE"/>
+    <rect x="34" y="32" width="4" height="24" fill="#7E22CE"/>
+    <rect x="42" y="32" width="4" height="24" fill="#7E22CE"/>
+  </g>
+
+  <!-- Popcorn pieces -->
+  <circle cx="24" cy="26" r="5" fill="#FEF3C7"/>
+  <circle cx="32" cy="22" r="6" fill="#FDE68A"/>
+  <circle cx="40" cy="26" r="5" fill="#FEF3C7"/>
+  <circle cx="28" cy="18" r="4" fill="#FBBF24"/>
+  <circle cx="36" cy="17" r="4" fill="#FDE68A"/>
+
+  <!-- Bucket rim -->
+  <rect x="15" y="29" width="34" height="5" rx="1" fill="#6B21A8"/>
+  <rect x="15" y="29" width="34" height="2" rx="1" fill="#7E22CE"/>
+
+  <!-- SHUTTER SHADES on the bucket -->
+  <g transform="translate(32, 35) rotate(-5)">
+    <!-- Frame -->
+    <rect x="-14" y="-4" width="28" height="10" rx="2" fill="#1a1a1a"/>
+
+    <!-- Left lens - CYAN slats -->
+    <rect x="-12" y="-2" width="9" height="1.5" fill="#00D4FF"/>
+    <rect x="-12" y="0.5" width="9" height="1.5" fill="#00D4FF"/>
+    <rect x="-12" y="3" width="9" height="1.5" fill="#00D4FF"/>
+
+    <!-- Right lens - RED slats -->
+    <rect x="3" y="-2" width="9" height="1.5" fill="#FF3D3D"/>
+    <rect x="3" y="0.5" width="9" height="1.5" fill="#FF3D3D"/>
+    <rect x="3" y="3" width="9" height="1.5" fill="#FF3D3D"/>
+
+    <!-- Bridge -->
+    <rect x="-2" y="0" width="4" height="3" fill="#1a1a1a"/>
+  </g>
+
+  <!-- Hype sparkles -->
+  <path d="M8 18 L9 20 L11 20.5 L9 21 L8 23 L7 21 L5 20.5 L7 20 Z" fill="#FBBF24"/>
+  <circle cx="54" cy="16" r="1.5" fill="#FDE68A"/>
+  <circle cx="56" cy="22" r="1" fill="#FBBF24"/>
+</svg>

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Logo: Popcorn Bucket with 3D Glasses -->
+  <!-- Bucket is the character, wearing shades. Pure swagger. -->
+
+  <defs>
+    <clipPath id="bucketClip2">
+      <path d="M18 32 L14 54 L50 54 L46 32 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Bucket body -->
+  <path d="M18 32 L14 54 L50 54 L46 32 Z" fill="#9333EA"/>
+
+  <!-- Bucket stripes - clipped -->
+  <g clip-path="url(#bucketClip2)">
+    <rect x="18" y="32" width="4" height="24" fill="#7E22CE"/>
+    <rect x="26" y="32" width="4" height="24" fill="#7E22CE"/>
+    <rect x="34" y="32" width="4" height="24" fill="#7E22CE"/>
+    <rect x="42" y="32" width="4" height="24" fill="#7E22CE"/>
+  </g>
+
+  <!-- Popcorn pieces (behind rim) -->
+  <circle cx="24" cy="26" r="5" fill="#FEF3C7"/>
+  <circle cx="32" cy="22" r="6" fill="#FDE68A"/>
+  <circle cx="40" cy="26" r="5" fill="#FEF3C7"/>
+  <circle cx="28" cy="18" r="4" fill="#FBBF24"/>
+  <circle cx="36" cy="17" r="4" fill="#FDE68A"/>
+
+  <!-- Bucket rim (occludes popcorn) -->
+  <rect x="15" y="29" width="34" height="5" rx="1" fill="#6B21A8"/>
+  <rect x="15" y="29" width="34" height="2" rx="1" fill="#7E22CE"/>
+
+  <!-- 3D GLASSES on the bucket - swagger angle -->
+  <g transform="translate(32, 34) rotate(-5)">
+    <!-- Glasses frame -->
+    <rect x="-14" y="-4" width="28" height="8" rx="2" fill="#1a1a1a"/>
+
+    <!-- Bridge -->
+    <rect x="-2" y="-2" width="4" height="4" fill="#1a1a1a"/>
+
+    <!-- Left lens - CYAN -->
+    <rect x="-12" y="-2" width="9" height="5" rx="1" fill="#00D4FF"/>
+
+    <!-- Right lens - RED -->
+    <rect x="3" y="-2" width="9" height="5" rx="1" fill="#FF3D3D"/>
+
+    <!-- Lens shine -->
+    <rect x="-11" y="-1" width="3" height="1" rx="0.5" fill="white" fill-opacity="0.5"/>
+    <rect x="4" y="-1" width="3" height="1" rx="0.5" fill="white" fill-opacity="0.5"/>
+  </g>
+
+  <!-- Sparkles for extra hype -->
+  <path d="M8 20 L9 22 L11 22.5 L9 23 L8 25 L7 23 L5 22.5 L7 22 Z" fill="#FBBF24"/>
+  <circle cx="54" cy="18" r="1.5" fill="#FDE68A"/>
+  <circle cx="56" cy="24" r="1" fill="#FBBF24"/>
+</svg>

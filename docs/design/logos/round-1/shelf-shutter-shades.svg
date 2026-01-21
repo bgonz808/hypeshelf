@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Logo: Shelf with Shutter Shades (Kanye style) -->
+  <!-- Red/Cyan 3D colors, slatted lenses -->
+
+  <!-- Subtle background glow -->
+  <circle cx="32" cy="34" r="26" fill="#9333EA" fill-opacity="0.08"/>
+
+  <!-- Items on shelf -->
+  <rect x="12" y="24" width="9" height="16" rx="1.5" fill="#A855F7"/>
+  <rect x="23" y="28" width="7" height="12" rx="1.5" fill="#7E22CE"/>
+  <rect x="32" y="22" width="8" height="18" rx="1.5" fill="#C084FC"/>
+  <rect x="42" y="26" width="10" height="14" rx="1.5" fill="#A855F7"/>
+
+  <!-- Shelf surface -->
+  <rect x="8" y="40" width="48" height="5" rx="2" fill="#9333EA"/>
+
+  <!-- Shelf brackets -->
+  <rect x="12" y="45" width="4" height="6" rx="1" fill="#6B21A8"/>
+  <rect x="48" y="45" width="4" height="6" rx="1" fill="#6B21A8"/>
+
+  <!-- SHUTTER SHADES - floating with swagger tilt -->
+  <g transform="translate(32, 13) rotate(-8)">
+    <!-- Frame outline -->
+    <rect x="-18" y="-4" width="36" height="12" rx="2" fill="#1a1a1a"/>
+
+    <!-- Left lens area - CYAN slats -->
+    <rect x="-16" y="-2" width="13" height="2" fill="#00D4FF"/>
+    <rect x="-16" y="1" width="13" height="2" fill="#00D4FF"/>
+    <rect x="-16" y="4" width="13" height="2" fill="#00D4FF"/>
+
+    <!-- Right lens area - RED slats -->
+    <rect x="3" y="-2" width="13" height="2" fill="#FF3D3D"/>
+    <rect x="3" y="1" width="13" height="2" fill="#FF3D3D"/>
+    <rect x="3" y="4" width="13" height="2" fill="#FF3D3D"/>
+
+    <!-- Bridge -->
+    <rect x="-2" y="0" width="4" height="4" fill="#1a1a1a"/>
+  </g>
+
+  <!-- Sparkle accents -->
+  <circle cx="52" cy="6" r="1.5" fill="#FBBF24"/>
+  <circle cx="8" cy="8" r="1" fill="#FDE68A"/>
+</svg>

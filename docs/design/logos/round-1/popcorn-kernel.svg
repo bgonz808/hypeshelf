@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Logo Concept: Stylized Popcorn Kernel -->
+  <!-- A single popped kernel with a subtle "glow" suggesting hype/energy -->
+
+  <!-- Outer glow/hype effect -->
+  <circle cx="32" cy="32" r="28" fill="#9333EA" fill-opacity="0.15"/>
+
+  <!-- Popcorn kernel - stylized, geometric -->
+  <!-- Main fluffy part (3 overlapping rounded shapes) -->
+  <ellipse cx="26" cy="28" rx="10" ry="11" fill="#9333EA"/>
+  <ellipse cx="38" cy="26" rx="9" ry="10" fill="#A855F7"/>
+  <ellipse cx="32" cy="36" rx="11" ry="10" fill="#7E22CE"/>
+
+  <!-- Small accent pop on top -->
+  <circle cx="32" cy="18" r="5" fill="#C084FC"/>
+
+  <!-- Tiny kernel base (the unpopped center) -->
+  <ellipse cx="32" cy="44" rx="4" ry="3" fill="#581C87"/>
+</svg>

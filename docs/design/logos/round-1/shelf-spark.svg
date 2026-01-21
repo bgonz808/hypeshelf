@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Logo Concept: Shelf with Spark -->
+  <!-- Minimalist shelf with items and a "hype" spark -->
+
+  <!-- Shelf surface -->
+  <rect x="8" y="40" width="48" height="4" rx="1" fill="#9333EA"/>
+
+  <!-- Items on shelf (abstract rectangles - could be books, movies) -->
+  <rect x="14" y="24" width="8" height="16" rx="1" fill="#A855F7"/>
+  <rect x="24" y="28" width="6" height="12" rx="1" fill="#7E22CE"/>
+  <rect x="32" y="22" width="7" height="18" rx="1" fill="#C084FC"/>
+  <rect x="41" y="26" width="9" height="14" rx="1" fill="#A855F7"/>
+
+  <!-- Spark/star accent (the "hype") -->
+  <path d="M52 16 L54 20 L58 20 L55 23 L56 28 L52 25 L48 28 L49 23 L46 20 L50 20 Z" fill="#FBBF24"/>
+
+  <!-- Small sparkles -->
+  <circle cx="12" cy="18" r="1.5" fill="#FDE68A"/>
+  <circle cx="44" cy="12" r="1" fill="#FDE68A"/>
+</svg>
