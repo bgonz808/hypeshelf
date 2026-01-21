@@ -1,0 +1,16 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Pre-commit checks..."
+
+# Secret scanning (warn only, don't block on pre-commit)
+if command -v gitleaks &> /dev/null; then
+  echo "  Scanning for secrets..."
+  gitleaks protect --staged --verbose || echo "⚠️  Gitleaks warnings - review before push"
+else
+  echo "  ⚠️  Gitleaks not installed - skipping secret scan"
+fi
+
+# Lint and format staged files
+echo "  Running lint-staged..."
+npx lint-staged

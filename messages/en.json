@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "locale": "en",
+    "direction": "ltr",
+    "name": "English",
+    "status": "primary",
+    "reviewedBy": "native"
+  },
+  "metadata": {
+    "title": "HypeShelf - Share What You're Hyped About",
+    "description": "Collect and share the stuff you're hyped about with friends."
+  },
+  "common": {
+    "appName": "HypeShelf",
+    "tagline": "Collect and share the stuff you're hyped about.",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "signInPrompt": "Sign in to add yours"
+  },
+  "home": {
+    "hero": {
+      "title": "Share What You're Hyped About",
+      "subtitle": "Discover recommendations from friends. Movies, shows, books, and more."
+    },
+    "latestRecs": "Latest Recommendations"
+  },
+  "recommendations": {
+    "add": "Add Recommendation",
+    "title": "Title",
+    "genre": "Genre",
+    "link": "Link",
+    "blurb": "Blurb",
+    "addedBy": "Added by",
+    "staffPick": "Staff Pick",
+    "delete": "Delete",
+    "confirmDelete": "Are you sure you want to delete this recommendation?"
+  },
+  "genres": {
+    "horror": "Horror",
+    "action": "Action",
+    "comedy": "Comedy",
+    "drama": "Drama",
+    "scifi": "Sci-Fi",
+    "documentary": "Documentary",
+    "thriller": "Thriller",
+    "romance": "Romance",
+    "animation": "Animation",
+    "other": "Other"
+  },
+  "filters": {
+    "all": "All",
+    "filterByGenre": "Filter by genre"
+  },
+  "admin": {
+    "markStaffPick": "Mark as Staff Pick",
+    "removeStaffPick": "Remove Staff Pick",
+    "deleteAny": "Delete"
+  }
+}

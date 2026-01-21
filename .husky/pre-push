@@ -1,0 +1,28 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🚀 Pre-push checks..."
+
+# Type checking
+echo "  Running type check..."
+npm run typecheck || exit 1
+
+# Full lint
+echo "  Running lint..."
+npm run lint || exit 1
+
+# Tests
+echo "  Running tests..."
+npm run test || exit 1
+
+# Secret scanning (strict on push)
+if command -v gitleaks &> /dev/null; then
+  echo "  Scanning for secrets..."
+  gitleaks protect --staged --verbose || exit 1
+fi
+
+# Dependency audit
+echo "  Auditing dependencies..."
+npm audit --audit-level=high || echo "⚠️  Audit warnings detected"
+
+echo "✅ All pre-push checks passed"

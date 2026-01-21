@@ -1,0 +1,99 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Environment files - NEVER commit real secrets
+.env
+.env.*
+!.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+local.certs/
+
+# Credential files
+credentials.json
+*-credentials.json
+service-account*.json
+*.credentials
+secrets/
+.secrets
+.secret
+
+# Convex local cache
+.convex/
+
+# Next.js
+.next/
+out/
+build/
+.swc/
+
+# Vercel
+.vercel/
+
+# Testing and coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE - commit examples, ignore actuals
+.vscode/*
+!.vscode/settings.json.example
+!.vscode/extensions.json
+!.vscode/launch.json.example
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Optional: Local docker overrides
+docker-compose.override.yml
+
+# SBOM output (regenerated in CI)
+sbom.json
+sbom-*.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Husky
+.husky/_/
+
+# Gitleaks
+.gitleaks-report.json
+
+# Local planning/context files (not for repo)
+CLAUDE.md

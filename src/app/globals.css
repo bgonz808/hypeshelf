@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-rgb: 10, 10, 10;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+/* Focus visible styles for keyboard navigation */
+:focus-visible {
+  outline: 2px solid rgb(168 85 247);
+  outline-offset: 2px;
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: rgb(168 85 247);
+  color: white;
+  padding: 8px;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ============================================
+   TOUCH & MOBILE OPTIMIZATION
+   ============================================ */
+
+/* Minimum touch target size (WCAG 2.5.5 - 44x44px) */
+@layer components {
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Prevent text size adjustment on orientation change (iOS) */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Smooth scrolling with reduced motion preference respect */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Tap highlight color for touch devices */
+* {
+  -webkit-tap-highlight-color: rgba(168, 85, 247, 0.2);
+}
+
+/* ============================================
+   RTL (RIGHT-TO-LEFT) SUPPORT
+   Using CSS logical properties for bidirectional layouts
+   ============================================ */
+
+/* When dir="rtl" is set on html or a container */
+[dir="rtl"] {
+  /* Ensure proper text alignment */
+  text-align: right;
+}
+
+/* Utility classes using logical properties (LTR/RTL agnostic) */
+@layer utilities {
+  /* Margin logical properties */
+  .ms-auto { margin-inline-start: auto; }
+  .me-auto { margin-inline-end: auto; }
+
+  /* Padding logical properties */
+  .ps-4 { padding-inline-start: 1rem; }
+  .pe-4 { padding-inline-end: 1rem; }
+
+  /* Border logical properties */
+  .border-s { border-inline-start-width: 1px; }
+  .border-e { border-inline-end-width: 1px; }
+
+  /* Position logical properties */
+  .start-0 { inset-inline-start: 0; }
+  .end-0 { inset-inline-end: 0; }
+}
+
+/* ============================================
+   RESPONSIVE TYPOGRAPHY
+   ============================================ */
+
+/* Fluid typography that scales with viewport */
+@layer base {
+  html {
+    /* Base: 16px, scales between 14px-18px based on viewport */
+    font-size: clamp(0.875rem, 0.8rem + 0.4vw, 1.125rem);
+  }
+}
+
+/* ============================================
+   SAFE AREAS (notched devices)
+   ============================================ */
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}

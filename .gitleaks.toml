@@ -1,0 +1,82 @@
+# Gitleaks configuration for HypeShelf
+# Detects secrets and PII before they enter git history
+
+title = "HypeShelf Secret Detection"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+    '''\.env\.example$''',
+    '''\.md$''',
+    '''package-lock\.json$''',
+    '''pnpm-lock\.yaml$''',
+]
+
+# Clerk-specific patterns
+[[rules]]
+id = "clerk-secret-key"
+description = "Clerk Secret Key"
+regex = '''sk_(live|test)_[A-Za-z0-9]{20,}'''
+tags = ["clerk", "secret", "high-confidence"]
+
+[[rules]]
+id = "clerk-publishable-key-in-secret-context"
+description = "Clerk Publishable Key in non-public file"
+regex = '''pk_(live|test)_[A-Za-z0-9]{20,}'''
+path = '''(?i)(\.env(?!\.example)|secret|credential|private)'''
+tags = ["clerk", "warning"]
+
+# Convex-specific patterns
+[[rules]]
+id = "convex-deploy-key"
+description = "Convex Deploy Key"
+regex = '''(prod|dev):[A-Za-z0-9|]{20,}'''
+tags = ["convex", "secret", "high-confidence"]
+
+# Generic high-entropy secrets
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key Pattern"
+regex = '''(?i)(api[_-]?key|apikey|api[_-]?secret)\s*[=:]\s*['"]?[A-Za-z0-9_\-]{20,}['"]?'''
+tags = ["generic", "api-key"]
+
+# PII Detection (supplementary to secret detection)
+[[rules]]
+id = "email-in-code"
+description = "Email address (potential PII)"
+regex = '''[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}'''
+allowlist = { regexes = [
+    '''example\.com''',
+    '''test\.com''',
+    '''localhost''',
+    '''noreply@''',
+    '''@anthropic\.com''',
+    '''@clerk\.com''',
+    '''@convex\.dev''',
+] }
+path = '''(?i)\.(ts|tsx|js|jsx|json)$'''
+tags = ["pii", "email"]
+
+[[rules]]
+id = "phone-number"
+description = "Phone number (potential PII)"
+regex = '''(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'''
+path = '''(?i)\.(ts|tsx|js|jsx|json)$'''
+tags = ["pii", "phone"]
+
+# Private keys
+[[rules]]
+id = "private-key"
+description = "Private Key"
+regex = '''-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----'''
+tags = ["private-key", "critical"]
+
+# JWT tokens (should not be hardcoded)
+[[rules]]
+id = "jwt-token"
+description = "JWT Token"
+regex = '''eyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*'''
+tags = ["jwt", "secret"]

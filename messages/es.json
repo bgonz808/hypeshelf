@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "locale": "es",
+    "direction": "ltr",
+    "name": "Español",
+    "status": "machine-translated",
+    "reviewedBy": null
+  },
+  "metadata": {
+    "title": "HypeShelf - Comparte lo que te emociona",
+    "description": "Colecciona y comparte las cosas que te emocionan con amigos."
+  },
+  "common": {
+    "appName": "HypeShelf",
+    "tagline": "Colecciona y comparte las cosas que te emocionan.",
+    "loading": "Cargando...",
+    "error": "Algo salió mal",
+    "retry": "Intentar de nuevo"
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "signUp": "Registrarse",
+    "signOut": "Cerrar sesión",
+    "signInPrompt": "Inicia sesión para agregar las tuyas"
+  },
+  "home": {
+    "hero": {
+      "title": "Comparte lo que te emociona",
+      "subtitle": "Descubre recomendaciones de amigos. Películas, series, libros y más."
+    },
+    "latestRecs": "Últimas recomendaciones"
+  },
+  "recommendations": {
+    "add": "Agregar recomendación",
+    "title": "Título",
+    "genre": "Género",
+    "link": "Enlace",
+    "blurb": "Descripción breve",
+    "addedBy": "Agregado por",
+    "staffPick": "Selección del equipo",
+    "delete": "Eliminar",
+    "confirmDelete": "¿Estás seguro de que quieres eliminar esta recomendación?"
+  },
+  "genres": {
+    "horror": "Terror",
+    "action": "Acción",
+    "comedy": "Comedia",
+    "drama": "Drama",
+    "scifi": "Ciencia ficción",
+    "documentary": "Documental",
+    "thriller": "Suspenso",
+    "romance": "Romance",
+    "animation": "Animación",
+    "other": "Otro"
+  },
+  "filters": {
+    "all": "Todos",
+    "filterByGenre": "Filtrar por género"
+  },
+  "admin": {
+    "markStaffPick": "Marcar como selección del equipo",
+    "removeStaffPick": "Quitar selección del equipo",
+    "deleteAny": "Eliminar"
+  }
+}

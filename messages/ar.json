@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "locale": "ar",
+    "direction": "rtl",
+    "name": "العربية",
+    "status": "machine-translated",
+    "reviewedBy": null
+  },
+  "metadata": {
+    "title": "HypeShelf - شارك ما يثير حماسك",
+    "description": "اجمع وشارك الأشياء التي تثير حماسك مع أصدقائك."
+  },
+  "common": {
+    "appName": "HypeShelf",
+    "tagline": "اجمع وشارك الأشياء التي تثير حماسك.",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ ما",
+    "retry": "حاول مرة أخرى"
+  },
+  "auth": {
+    "signIn": "تسجيل الدخول",
+    "signUp": "إنشاء حساب",
+    "signOut": "تسجيل الخروج",
+    "signInPrompt": "سجل دخولك لإضافة توصياتك"
+  },
+  "home": {
+    "hero": {
+      "title": "شارك ما يثير حماسك",
+      "subtitle": "اكتشف توصيات من أصدقائك. أفلام، مسلسلات، كتب، والمزيد."
+    },
+    "latestRecs": "أحدث التوصيات"
+  },
+  "recommendations": {
+    "add": "إضافة توصية",
+    "title": "العنوان",
+    "genre": "النوع",
+    "link": "الرابط",
+    "blurb": "وصف مختصر",
+    "addedBy": "أضافه",
+    "staffPick": "اختيار الفريق",
+    "delete": "حذف",
+    "confirmDelete": "هل أنت متأكد أنك تريد حذف هذه التوصية؟"
+  },
+  "genres": {
+    "horror": "رعب",
+    "action": "أكشن",
+    "comedy": "كوميديا",
+    "drama": "دراما",
+    "scifi": "خيال علمي",
+    "documentary": "وثائقي",
+    "thriller": "إثارة",
+    "romance": "رومانسية",
+    "animation": "رسوم متحركة",
+    "other": "أخرى"
+  },
+  "filters": {
+    "all": "الكل",
+    "filterByGenre": "تصفية حسب النوع"
+  },
+  "admin": {
+    "markStaffPick": "تحديد كاختيار الفريق",
+    "removeStaffPick": "إزالة اختيار الفريق",
+    "deleteAny": "حذف"
+  }
+}
