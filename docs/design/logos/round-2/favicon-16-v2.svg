@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none">
+  <!-- HypeShelf Favicon: 16x16 - shades overflow circle -->
+
+  <!-- Purple circle - slightly smaller to let shades overflow -->
+  <circle cx="8" cy="8" r="6" fill="#9333EA"/>
+
+  <!-- Shades frame - extends past circle -->
+  <rect x="1" y="5" width="14" height="6" rx="1" fill="#1a1a1a"/>
+
+  <!-- Temple arm hints -->
+  <rect x="0" y="7" width="2" height="2" fill="#333"/>
+  <rect x="14" y="7" width="2" height="2" fill="#333"/>
+
+  <!-- Left - CYAN -->
+  <rect x="2" y="6.5" width="5" height="3" fill="#00D4FF"/>
+
+  <!-- Right - RED -->
+  <rect x="9" y="6.5" width="5" height="3" fill="#FF3D3D"/>
+
+  <!-- Bridge hint -->
+  <rect x="7" y="7" width="2" height="2" fill="#1a1a1a"/>
+</svg>

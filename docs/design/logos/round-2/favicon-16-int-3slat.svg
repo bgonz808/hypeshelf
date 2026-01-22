@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none">
+  <!-- 16px Favicon: INTEGER COORDINATES ONLY - 3 slats -->
+
+  <!-- Frame: y=4, height=8 -->
+  <rect x="0" y="4" width="16" height="8" rx="1" fill="#1a1a1a"/>
+
+  <!-- Left lens - CYAN - 4 bars with 3 slat gaps -->
+  <!-- Available height: 8px (rows 4-11), frame padding ~1px each side = 6px for bars -->
+  <!-- 4 bars + 3 gaps = 7 units. Make bars 1px, gaps 1px, with slight adjustment -->
+  <rect x="1" y="5" width="6" height="1" fill="#00D4FF"/>
+  <rect x="1" y="7" width="6" height="1" fill="#00D4FF"/>
+  <rect x="1" y="9" width="6" height="1" fill="#00D4FF"/>
+  <rect x="1" y="11" width="6" height="1" fill="#00D4FF"/>
+
+  <!-- Right lens - RED -->
+  <rect x="9" y="5" width="6" height="1" fill="#FF3D3D"/>
+  <rect x="9" y="7" width="6" height="1" fill="#FF3D3D"/>
+  <rect x="9" y="9" width="6" height="1" fill="#FF3D3D"/>
+  <rect x="9" y="11" width="6" height="1" fill="#FF3D3D"/>
+</svg>

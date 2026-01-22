@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Favicon: Oversized shades, 2 slats (minimal) -->
+  <!-- Optimized for small sizes with bold contrast -->
+
+  <!-- Purple circle background -->
+  <circle cx="32" cy="32" r="24" fill="#9333EA"/>
+
+  <!-- SHUTTER SHADES - oversized, 2 bold slats -->
+  <g transform="translate(32, 32)">
+    <!-- Temple arms -->
+    <rect x="-30" y="-1" width="8" height="4" rx="1" fill="#333"/>
+    <rect x="22" y="-1" width="8" height="4" rx="1" fill="#333"/>
+
+    <!-- Main frame -->
+    <rect x="-22" y="-7" width="44" height="16" rx="3" fill="#1a1a1a"/>
+
+    <!-- Left lens - CYAN - 2 bold slats -->
+    <rect x="-18" y="-4" width="14" height="3.5" fill="#00D4FF"/>
+    <rect x="-18" y="2" width="14" height="3.5" fill="#00D4FF"/>
+
+    <!-- Right lens - RED - 2 bold slats -->
+    <rect x="4" y="-4" width="14" height="3.5" fill="#FF3D3D"/>
+    <rect x="4" y="2" width="14" height="3.5" fill="#FF3D3D"/>
+
+    <!-- Bridge -->
+    <rect x="-3" y="-1" width="6" height="4" fill="#1a1a1a"/>
+  </g>
+</svg>

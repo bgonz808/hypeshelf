@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none">
+  <!-- 16px Favicon: No border, full real estate, 2 slats -->
+
+  <!-- Full-width shades frame -->
+  <rect x="0" y="4" width="16" height="8" rx="1.5" fill="#1a1a1a"/>
+
+  <!-- Left lens - CYAN - 3 bars (2 slat gaps) -->
+  <rect x="1" y="4.5" width="6" height="2" fill="#00D4FF"/>
+  <rect x="1" y="7" width="6" height="2" fill="#00D4FF"/>
+  <rect x="1" y="9.5" width="6" height="2" fill="#00D4FF"/>
+
+  <!-- Right lens - RED - 3 bars (2 slat gaps) -->
+  <rect x="9" y="4.5" width="6" height="2" fill="#FF3D3D"/>
+  <rect x="9" y="7" width="6" height="2" fill="#FF3D3D"/>
+  <rect x="9" y="9.5" width="6" height="2" fill="#FF3D3D"/>
+</svg>

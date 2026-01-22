@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none">
+  <!-- HypeShelf Favicon: 16x16 optimized -->
+  <!-- Maximum simplification for browser tab -->
+
+  <!-- Purple circle -->
+  <circle cx="8" cy="8" r="7.5" fill="#9333EA"/>
+
+  <!-- Shades frame -->
+  <rect x="2" y="5" width="12" height="5" rx="1" fill="#1a1a1a"/>
+
+  <!-- Left - CYAN (single bar at this size) -->
+  <rect x="3" y="6.5" width="4" height="2" fill="#00D4FF"/>
+
+  <!-- Right - RED -->
+  <rect x="9" y="6.5" width="4" height="2" fill="#FF3D3D"/>
+</svg>

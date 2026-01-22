@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Logo: Bucket + Shutter Shades v2 -->
+  <!-- Fixes: rounded bucket bottom, popcorn sits lower, varied popcorn colors, shades with arms -->
+
+  <defs>
+    <!-- Rounded bucket clip path -->
+    <clipPath id="bucketClipR">
+      <path d="M18 32 L15 50 Q14 54 18 54 L46 54 Q50 54 49 50 L46 32 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Bucket body - rounded bottom -->
+  <path d="M18 32 L15 50 Q14 54 18 54 L46 54 Q50 54 49 50 L46 32 Z" fill="#9333EA"/>
+
+  <!-- Bucket stripes - clipped to rounded shape -->
+  <g clip-path="url(#bucketClipR)">
+    <rect x="17" y="32" width="4" height="24" fill="#7E22CE"/>
+    <rect x="25" y="32" width="4" height="24" fill="#7E22CE"/>
+    <rect x="33" y="32" width="4" height="24" fill="#7E22CE"/>
+    <rect x="41" y="32" width="4" height="24" fill="#7E22CE"/>
+  </g>
+
+  <!-- Popcorn pieces - varied colors, positioned to be more occluded by rim -->
+  <!-- Back layer (most hidden) -->
+  <circle cx="26" cy="26" r="5" fill="#FEF3C7"/>
+  <circle cx="38" cy="26" r="5" fill="#FEFCE8"/>
+
+  <!-- Middle layer -->
+  <circle cx="32" cy="23" r="6" fill="#FDE68A"/>
+  <circle cx="22" cy="22" r="4" fill="#FCD34D"/>
+  <circle cx="42" cy="23" r="4" fill="#FEF9C3"/>
+
+  <!-- Front layer (pops up most) -->
+  <circle cx="28" cy="18" r="4.5" fill="#FBBF24"/>
+  <circle cx="36" cy="17" r="4" fill="#FDE68A"/>
+  <circle cx="32" cy="14" r="3.5" fill="#FEF3C7"/>
+
+  <!-- Bucket rim - thicker to occlude more popcorn -->
+  <rect x="14" y="28" width="36" height="6" rx="1.5" fill="#6B21A8"/>
+  <rect x="14" y="28" width="36" height="2.5" rx="1" fill="#7E22CE"/>
+
+  <!-- SHUTTER SHADES with arms -->
+  <g transform="translate(32, 36)">
+    <!-- Temple arms (ear pieces) extending outward -->
+    <rect x="-20" y="0" width="6" height="3" rx="1" fill="#333"/>
+    <rect x="14" y="0" width="6" height="3" rx="1" fill="#333"/>
+
+    <!-- Main frame -->
+    <rect x="-15" y="-4" width="30" height="10" rx="2" fill="#1a1a1a"/>
+
+    <!-- Left lens - CYAN slats -->
+    <rect x="-13" y="-2" width="10" height="1.5" fill="#00D4FF"/>
+    <rect x="-13" y="0.5" width="10" height="1.5" fill="#00D4FF"/>
+    <rect x="-13" y="3" width="10" height="1.5" fill="#00D4FF"/>
+
+    <!-- Right lens - RED slats -->
+    <rect x="3" y="-2" width="10" height="1.5" fill="#FF3D3D"/>
+    <rect x="3" y="0.5" width="10" height="1.5" fill="#FF3D3D"/>
+    <rect x="3" y="3" width="10" height="1.5" fill="#FF3D3D"/>
+
+    <!-- Bridge -->
+    <rect x="-2" y="0" width="4" height="3" fill="#1a1a1a"/>
+  </g>
+
+  <!-- Subtle sparkles -->
+  <circle cx="8" cy="18" r="1.5" fill="#FBBF24"/>
+  <circle cx="55" cy="20" r="1" fill="#FDE68A"/>
+</svg>

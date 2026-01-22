@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Favicon: Ultra-minimal shades on purple -->
+  <!-- Optimized for tiny sizes - thicker slats, higher contrast -->
+
+  <!-- Purple circle background -->
+  <circle cx="32" cy="32" r="30" fill="#9333EA"/>
+
+  <!-- SHUTTER SHADES - simplified for small render -->
+  <g transform="translate(32, 32)">
+    <!-- Frame - slightly thicker -->
+    <rect x="-20" y="-6" width="40" height="14" rx="3" fill="#1a1a1a"/>
+
+    <!-- Left lens - CYAN - only 2 bold slats for clarity at small size -->
+    <rect x="-17" y="-3" width="14" height="3" fill="#00D4FF"/>
+    <rect x="-17" y="2" width="14" height="3" fill="#00D4FF"/>
+
+    <!-- Right lens - RED - only 2 bold slats -->
+    <rect x="3" y="-3" width="14" height="3" fill="#FF3D3D"/>
+    <rect x="3" y="2" width="14" height="3" fill="#FF3D3D"/>
+
+    <!-- Bridge -->
+    <rect x="-2" y="-1" width="4" height="4" fill="#1a1a1a"/>
+  </g>
+</svg>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- HypeShelf Favicon: Shades LARGER than circle -->
+  <!-- Bold look - shades extend past the purple background -->
+
+  <!-- Purple circle background -->
+  <circle cx="32" cy="32" r="24" fill="#9333EA"/>
+
+  <!-- Inner glow -->
+  <circle cx="32" cy="32" r="18" fill="#A855F7" fill-opacity="0.3"/>
+
+  <!-- SHUTTER SHADES - oversized, extends past circle -->
+  <g transform="translate(32, 32)">
+    <!-- Temple arms extending way out -->
+    <rect x="-30" y="-1" width="8" height="4" rx="1" fill="#333"/>
+    <rect x="22" y="-1" width="8" height="4" rx="1" fill="#333"/>
+
+    <!-- Main frame - wider than circle -->
+    <rect x="-22" y="-6" width="44" height="14" rx="2.5" fill="#1a1a1a"/>
+
+    <!-- Left lens - CYAN slats -->
+    <rect x="-19" y="-3" width="15" height="2.5" fill="#00D4FF"/>
+    <rect x="-19" y="1" width="15" height="2.5" fill="#00D4FF"/>
+    <rect x="-19" y="5" width="15" height="2.5" fill="#00D4FF"/>
+
+    <!-- Right lens - RED slats -->
+    <rect x="4" y="-3" width="15" height="2.5" fill="#FF3D3D"/>
+    <rect x="4" y="1" width="15" height="2.5" fill="#FF3D3D"/>
+    <rect x="4" y="5" width="15" height="2.5" fill="#FF3D3D"/>
+
+    <!-- Bridge -->
+    <rect x="-3" y="0" width="6" height="4" fill="#1a1a1a"/>
+  </g>
+</svg>

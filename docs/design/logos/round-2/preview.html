@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HypeShelf Logo - Round 2</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+    h1 { margin-bottom: 0.5rem; color: #333; }
+    .subtitle { color: #666; margin-bottom: 2rem; }
+    h2 { margin: 2rem 0 1rem; color: #9333EA; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .card.winner {
+      border: 3px solid #9333EA;
+      background: linear-gradient(135deg, #fff 0%, #f3e8ff 100%);
+    }
+    .card.new {
+      border: 2px solid #FBBF24;
+    }
+    .card h3 { margin-bottom: 0.5rem; color: #333; }
+    .card p { font-size: 0.875rem; color: #666; margin-bottom: 1rem; }
+    .badge {
+      display: inline-block;
+      background: #FBBF24;
+      color: #1a1a1a;
+      font-size: 0.7rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+    }
+    .preview {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+    .light { background: #fff; border: 1px solid #eee; }
+    .dark { background: #1a1a1a; }
+    .preview img { width: 64px; height: 64px; }
+    .preview .med { width: 32px; height: 32px; }
+    .preview .small { width: 16px; height: 16px; }
+    .sizes { font-size: 0.75rem; color: #999; text-align: center; }
+    .changes {
+      background: #fef3c7;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+    }
+    .changes strong { color: #92400e; }
+    .favicon-test {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: #f5f5f5;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+    .favicon-test .tab {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px 8px 0 0;
+      border: 1px solid #ddd;
+      border-bottom: none;
+    }
+    .favicon-test .tab img { width: 16px; height: 16px; }
+    .favicon-test .tab span { font-size: 0.75rem; color: #333; }
+  </style>
+</head>
+<body>
+  <h1>HypeShelf Logo - Round 2 <span class="badge">UPDATED</span></h1>
+  <p class="subtitle">Iterating on the winner: Bucket + Shutter Shades</p>
+
+  <h2>🍿 Main Logo</h2>
+  <div class="grid">
+    <div class="card winner new">
+      <h3>v3: Fire Blue Glow ✨ <span class="badge">NEW</span></h3>
+      <div class="changes">
+        <strong>New:</strong> Cyan/blue glow behind the logo for extra energy
+      </div>
+      <div class="preview light">
+        <img src="bucket-shades-horizontal-v3-glow.svg" alt="Logo v3 glow">
+        <img src="bucket-shades-horizontal-v3-glow.svg" alt="Logo v3 glow" class="med">
+        <img src="bucket-shades-horizontal-v3-glow.svg" alt="Logo v3 glow" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="bucket-shades-horizontal-v3-glow.svg" alt="Logo v3 glow">
+        <img src="bucket-shades-horizontal-v3-glow.svg" alt="Logo v3 glow" class="med">
+        <img src="bucket-shades-horizontal-v3-glow.svg" alt="Logo v3 glow" class="small">
+      </div>
+      <p class="sizes">64px / 32px / 16px</p>
+    </div>
+
+    <div class="card">
+      <h3>v2: No Glow</h3>
+      <p>Clean version without the glow effect</p>
+      <div class="preview light">
+        <img src="bucket-shades-horizontal-v2.svg" alt="Logo v2">
+        <img src="bucket-shades-horizontal-v2.svg" alt="Logo v2" class="med">
+      </div>
+      <p class="sizes">For contexts where glow doesn't work</p>
+    </div>
+  </div>
+
+  <h2>😎 Favicons - Shades Overflow Circle <span class="badge">NEW</span></h2>
+  <p style="color:#666; margin-bottom:1rem;">Shades are now LARGER than the purple circle for a bolder look</p>
+
+  <div class="grid">
+    <div class="card new">
+      <h3>Overflow - 3 Slats <span class="badge">NEW</span></h3>
+      <p>Full detail, shades extend past circle edge, temple arms visible</p>
+      <div class="preview light">
+        <img src="favicon-shades-overflow.svg" alt="Favicon overflow">
+        <img src="favicon-shades-overflow.svg" alt="Favicon overflow" class="med">
+        <img src="favicon-shades-overflow.svg" alt="Favicon overflow" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-shades-overflow.svg" alt="Favicon overflow">
+        <img src="favicon-shades-overflow.svg" alt="Favicon overflow" class="med">
+        <img src="favicon-shades-overflow.svg" alt="Favicon overflow" class="small">
+      </div>
+      <p class="sizes">64px / 32px / 16px</p>
+    </div>
+
+    <div class="card new">
+      <h3>Overflow Minimal - 2 Slats <span class="badge">NEW</span></h3>
+      <p>Bolder slats for better small-size clarity</p>
+      <div class="preview light">
+        <img src="favicon-shades-overflow-minimal.svg" alt="Favicon minimal">
+        <img src="favicon-shades-overflow-minimal.svg" alt="Favicon minimal" class="med">
+        <img src="favicon-shades-overflow-minimal.svg" alt="Favicon minimal" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-shades-overflow-minimal.svg" alt="Favicon minimal">
+        <img src="favicon-shades-overflow-minimal.svg" alt="Favicon minimal" class="med">
+        <img src="favicon-shades-overflow-minimal.svg" alt="Favicon minimal" class="small">
+      </div>
+      <p class="sizes">64px / 32px / 16px</p>
+    </div>
+
+    <div class="card new">
+      <h3>32px Native <span class="badge">NEW</span></h3>
+      <p>Native 32x32 viewBox, optimized geometry</p>
+      <div class="preview light">
+        <img src="favicon-32-v2.svg" alt="32px" style="width:64px;height:64px;">
+        <img src="favicon-32-v2.svg" alt="32px" class="med">
+        <img src="favicon-32-v2.svg" alt="32px" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-32-v2.svg" alt="32px" style="width:64px;height:64px;">
+        <img src="favicon-32-v2.svg" alt="32px" class="med">
+        <img src="favicon-32-v2.svg" alt="32px" class="small">
+      </div>
+      <p class="sizes">Scaled / 32px (native) / 16px</p>
+    </div>
+
+    <div class="card new">
+      <h3>16px Native <span class="badge">NEW</span></h3>
+      <p>Native 16x16 viewBox - maximum browser tab clarity</p>
+      <div class="preview light">
+        <img src="favicon-16-v2.svg" alt="16px" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-v2.svg" alt="16px" class="med">
+        <img src="favicon-16-v2.svg" alt="16px" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-16-v2.svg" alt="16px" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-v2.svg" alt="16px" class="med">
+        <img src="favicon-16-v2.svg" alt="16px" class="small">
+      </div>
+      <p class="sizes">Scaled up / 32px / 16px (native)</p>
+    </div>
+  </div>
+
+  <h2>📌 16px Full Bleed (No Border) <span class="badge">NEW</span></h2>
+  <p style="color:#666; margin-bottom:1rem;">Maximum real estate - frame spans full 16px width, no border eating pixels.</p>
+
+  <div class="grid">
+    <div class="card new" style="border-color:#9333EA;">
+      <h3>Full Bleed - 1 Slat ⭐</h3>
+      <p>Best balance: shutter effect visible, not muddy</p>
+      <div class="preview light">
+        <img src="favicon-16-full-1slat.svg" alt="full 1 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-full-1slat.svg" alt="full 1 slat" class="med">
+        <img src="favicon-16-full-1slat.svg" alt="full 1 slat" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-16-full-1slat.svg" alt="full 1 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-full-1slat.svg" alt="full 1 slat" class="med">
+        <img src="favicon-16-full-1slat.svg" alt="full 1 slat" class="small">
+      </div>
+    </div>
+
+    <div class="card new">
+      <h3>Full Bleed - 2 Slats</h3>
+      <p>3 bars per lens</p>
+      <div class="preview light">
+        <img src="favicon-16-full-2slat.svg" alt="full 2 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-full-2slat.svg" alt="full 2 slat" class="med">
+        <img src="favicon-16-full-2slat.svg" alt="full 2 slat" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-16-full-2slat.svg" alt="full 2 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-full-2slat.svg" alt="full 2 slat" class="med">
+        <img src="favicon-16-full-2slat.svg" alt="full 2 slat" class="small">
+      </div>
+    </div>
+
+    <div class="card new">
+      <h3>Full Bleed - 3 Slats</h3>
+      <p>4 bars per lens - most faithful to shutter style</p>
+      <div class="preview light">
+        <img src="favicon-16-full-3slat.svg" alt="full 3 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-full-3slat.svg" alt="full 3 slat" class="med">
+        <img src="favicon-16-full-3slat.svg" alt="full 3 slat" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-16-full-3slat.svg" alt="full 3 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-full-3slat.svg" alt="full 3 slat" class="med">
+        <img src="favicon-16-full-3slat.svg" alt="full 3 slat" class="small">
+      </div>
+    </div>
+
+    <div class="card new">
+      <h3>Full Bleed - Solid (0 Slats)</h3>
+      <p>For comparison - no shutter effect</p>
+      <div class="preview light">
+        <img src="favicon-16-full-0slat.svg" alt="full 0 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-full-0slat.svg" alt="full 0 slat" class="med">
+        <img src="favicon-16-full-0slat.svg" alt="full 0 slat" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-16-full-0slat.svg" alt="full 0 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-full-0slat.svg" alt="full 0 slat" class="med">
+        <img src="favicon-16-full-0slat.svg" alt="full 0 slat" class="small">
+      </div>
+    </div>
+  </div>
+
+  <h2>🔢 16px Integer Coordinates <span class="badge">NEW</span></h2>
+  <p style="color:#666; margin-bottom:1rem;">All positions are whole pixels - crisper rendering, no sub-pixel blur.</p>
+
+  <div class="grid">
+    <div class="card new" style="border-color:#22c55e;">
+      <h3>Integer - 1 Slat ⭐</h3>
+      <div class="preview light">
+        <img src="favicon-16-int-1slat.svg" alt="int 1 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-int-1slat.svg" alt="int 1 slat" class="med">
+        <img src="favicon-16-int-1slat.svg" alt="int 1 slat" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-16-int-1slat.svg" alt="int 1 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-int-1slat.svg" alt="int 1 slat" class="med">
+        <img src="favicon-16-int-1slat.svg" alt="int 1 slat" class="small">
+      </div>
+    </div>
+    <div class="card new" style="border-color:#22c55e;">
+      <h3>Integer - 2 Slats</h3>
+      <div class="preview light">
+        <img src="favicon-16-int-2slat.svg" alt="int 2 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-int-2slat.svg" alt="int 2 slat" class="med">
+        <img src="favicon-16-int-2slat.svg" alt="int 2 slat" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-16-int-2slat.svg" alt="int 2 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-int-2slat.svg" alt="int 2 slat" class="med">
+        <img src="favicon-16-int-2slat.svg" alt="int 2 slat" class="small">
+      </div>
+    </div>
+    <div class="card new" style="border-color:#22c55e;">
+      <h3>Integer - 3 Slats</h3>
+      <div class="preview light">
+        <img src="favicon-16-int-3slat.svg" alt="int 3 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-int-3slat.svg" alt="int 3 slat" class="med">
+        <img src="favicon-16-int-3slat.svg" alt="int 3 slat" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-16-int-3slat.svg" alt="int 3 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-int-3slat.svg" alt="int 3 slat" class="med">
+        <img src="favicon-16-int-3slat.svg" alt="int 3 slat" class="small">
+      </div>
+    </div>
+    <div class="card new" style="border-color:#22c55e;">
+      <h3>Integer - Solid</h3>
+      <div class="preview light">
+        <img src="favicon-16-int-0slat.svg" alt="int 0 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-int-0slat.svg" alt="int 0 slat" class="med">
+        <img src="favicon-16-int-0slat.svg" alt="int 0 slat" class="small">
+      </div>
+      <div class="preview dark">
+        <img src="favicon-16-int-0slat.svg" alt="int 0 slat" style="width:64px;height:64px;image-rendering:pixelated;">
+        <img src="favicon-16-int-0slat.svg" alt="int 0 slat" class="med">
+        <img src="favicon-16-int-0slat.svg" alt="int 0 slat" class="small">
+      </div>
+    </div>
+  </div>
+
+  <h2>Browser Tab Comparison</h2>
+  <p style="color:#666; margin-bottom:0.5rem;">Integer (green) vs Float (gray) - check for crispness at 16px</p>
+  <div class="favicon-test" style="border:2px solid #22c55e;">
+    <div class="tab">
+      <img src="favicon-16-int-0slat.svg" alt="">
+      <span>int-0</span>
+    </div>
+    <div class="tab" style="border-color:#22c55e;border-width:2px;">
+      <img src="favicon-16-int-1slat.svg" alt="">
+      <span>int-1 ⭐</span>
+    </div>
+    <div class="tab">
+      <img src="favicon-16-int-2slat.svg" alt="">
+      <span>int-2</span>
+    </div>
+    <div class="tab">
+      <img src="favicon-16-int-3slat.svg" alt="">
+      <span>int-3</span>
+    </div>
+    <span style="color:#22c55e;font-size:0.75rem;font-weight:bold;">← INTEGER (crisp)</span>
+  </div>
+  <div class="favicon-test" style="opacity:0.6;">
+    <div class="tab">
+      <img src="favicon-16-full-0slat.svg" alt="">
+      <span>flt-0</span>
+    </div>
+    <div class="tab">
+      <img src="favicon-16-full-1slat.svg" alt="">
+      <span>flt-1</span>
+    </div>
+    <div class="tab">
+      <img src="favicon-16-full-2slat.svg" alt="">
+      <span>flt-2</span>
+    </div>
+    <div class="tab">
+      <img src="favicon-16-full-3slat.svg" alt="">
+      <span>flt-3</span>
+    </div>
+    <span style="color:#999;font-size:0.75rem;">← FLOAT (may blur)</span>
+  </div>
+
+  <h2 style="color:#666;">Previous 16px Tests (with border)</h2>
+  <div class="favicon-test" style="opacity:0.6;">
+    <div class="tab">
+      <img src="favicon-16-minimal-0slat.svg" alt="">
+      <span>border</span>
+    </div>
+    <div class="tab">
+      <img src="favicon-16-minimal-1slat.svg" alt="">
+      <span>border</span>
+    </div>
+    <span style="color:#999;font-size:0.75rem;">← Older versions with purple border (smaller frame)</span>
+  </div>
+
+  <div class="favicon-test" style="margin-top:0.5rem;">
+    <div class="tab">
+      <img src="favicon-32-v2.svg" alt="">
+      <span>32px overflow</span>
+    </div>
+    <div class="tab">
+      <img src="favicon-16-v2.svg" alt="">
+      <span>16px overflow</span>
+    </div>
+    <span style="color:#999;font-size:0.75rem;">← Previous overflow versions for comparison</span>
+  </div>
+
+  <h2 style="color:#666;">Previous Versions (v1)</h2>
+  <p style="color:#999;margin-bottom:1rem;">Kept for comparison - shades contained within circle</p>
+  <div class="grid" style="opacity:0.7;">
+    <div class="card">
+      <h3>v1: Shades in Circle</h3>
+      <div class="preview light">
+        <img src="favicon-shades-circle.svg" alt="v1">
+        <img src="favicon-shades-minimal.svg" alt="v1 minimal">
+      </div>
+      <p class="sizes">Original versions</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 3rem; padding: 1.5rem; background: #fff; border-radius: 12px; border: 2px solid #9333EA;">
+    <h3 style="color: #9333EA; margin-bottom: 1rem;">✅ Current Recommendations</h3>
+    <p style="color: #666; line-height: 1.8;">
+      <strong>Main logo:</strong> bucket-shades-horizontal-v3-glow.svg (with fire blue glow)<br>
+      <strong>Main logo (no glow):</strong> bucket-shades-horizontal-v2.svg<br>
+      <strong>Favicon (app icons, 64px+):</strong> favicon-shades-overflow.svg<br>
+      <strong>Favicon (32px):</strong> favicon-32-v2.svg<br>
+      <strong>Favicon (16px):</strong> favicon-16-full-1slat.svg (full bleed, 1 slat)
+    </p>
+  </div>
+</body>
+</html>

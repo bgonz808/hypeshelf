@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none">
+  <!-- 16px Favicon: No circle, just shades with purple border, 2 slats -->
+
+  <!-- Shades frame with 1px purple stroke -->
+  <rect x="1" y="5" width="14" height="6" rx="1" fill="#1a1a1a" stroke="#9333EA" stroke-width="1"/>
+
+  <!-- Left lens - CYAN with 2 slats -->
+  <rect x="2.5" y="5.5" width="5" height="1.2" fill="#00D4FF"/>
+  <rect x="2.5" y="7.4" width="5" height="1.2" fill="#00D4FF"/>
+  <rect x="2.5" y="9.3" width="5" height="1.2" fill="#00D4FF"/>
+
+  <!-- Right lens - RED with 2 slats -->
+  <rect x="8.5" y="5.5" width="5" height="1.2" fill="#FF3D3D"/>
+  <rect x="8.5" y="7.4" width="5" height="1.2" fill="#FF3D3D"/>
+  <rect x="8.5" y="9.3" width="5" height="1.2" fill="#FF3D3D"/>
+</svg>
