@@ -22,7 +22,7 @@ import {
   existsSync,
   readdirSync,
 } from "fs";
-import { join, basename } from "path";
+import { join } from "path";
 
 // Configuration
 const CONFIG = {

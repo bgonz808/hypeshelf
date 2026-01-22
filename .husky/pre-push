@@ -1,6 +1,3 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
 echo "🚀 Pre-push checks..."
 
 # Type checking
@@ -24,5 +21,9 @@ fi
 # Dependency audit
 echo "  Auditing dependencies..."
 npm audit --audit-level=high || echo "⚠️  Audit warnings detected"
+
+# Version check (conventional commits → semver)
+echo "  Checking version consistency..."
+npx tsx scripts/check-version.ts || exit 1
 
 echo "✅ All pre-push checks passed"
