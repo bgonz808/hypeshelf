@@ -40,7 +40,7 @@
     "next": "14.2.35",
     "next-intl": "3.26.5",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "react-dom": "19.2.3",
     "clsx": "2.1.1",
     "tailwind-merge": "2.6.0"
   },
@@ -53,7 +53,7 @@
     "jsdom": "25.0.1",
     "@types/node": "22.19.7",
     "@types/react": "18.3.27",
-    "@types/react-dom": "18.3.7",
+    "@types/react-dom": "19.2.3",
     "autoprefixer": "10.4.23",
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.35",
