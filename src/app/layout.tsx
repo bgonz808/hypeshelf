@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { ConvexClientProvider } from "./ConvexClientProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -42,10 +44,12 @@ export default function RootLayout({
 }>) {
   // Note: dir attribute will be set dynamically by next-intl based on locale
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-white font-sans antialiased">
-        {children}
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={inter.variable}>
+        <body className="min-h-screen bg-white font-sans antialiased">
+          <ConvexClientProvider>{children}</ConvexClientProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
