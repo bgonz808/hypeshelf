@@ -30,8 +30,9 @@ secrets/
 .secrets
 .secret
 
-# Convex local cache
+# Convex local cache and generated files
 .convex/
+convex/_generated/
 
 # Next.js
 .next/
