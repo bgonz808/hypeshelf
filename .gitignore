@@ -83,6 +83,10 @@ docker-compose.override.yml
 sbom.json
 sbom-*.json
 
+# Built logo assets (regenerated from SVG source)
+public/logos/
+public/favicon.ico
+
 # Temporary files
 tmp/
 temp/
@@ -95,5 +99,5 @@ temp/
 # Gitleaks
 .gitleaks-report.json
 
-# Local planning/context files (not for repo)
+# Claude context files (local only, not for repo)
 CLAUDE.md
