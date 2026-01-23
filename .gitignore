@@ -30,9 +30,8 @@ secrets/
 .secrets
 .secret
 
-# Convex local cache and generated files
+# Convex local cache (NOT _generated - those are committed for CI)
 .convex/
-convex/_generated/
 
 # Next.js
 .next/

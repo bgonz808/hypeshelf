@@ -27,9 +27,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate Convex types
-        run: npx convex codegen
-
       - name: Run ESLint
         run: npm run lint
 
@@ -102,9 +99,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Generate Convex types
-        run: npx convex codegen
 
       - name: Build
         run: npx next build
