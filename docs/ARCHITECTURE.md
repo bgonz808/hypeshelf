@@ -75,23 +75,24 @@ recommendations
 
 ### Role-Based Access Control
 
-| Role | Capabilities |
-|------|-------------|
-| `user` | Create own recs, delete own recs, view all |
+| Role    | Capabilities                                             |
+| ------- | -------------------------------------------------------- |
+| `user`  | Create own recs, delete own recs, view all               |
 | `admin` | All user capabilities + delete any rec + mark Staff Pick |
 
 Role assignment:
+
 - Stored in Clerk user public metadata
 - Checked server-side in Convex before mutations
 - Initial admin bootstrapped via `INITIAL_ADMIN_EMAIL` env var
 
 ## Environment Strategy
 
-| Environment | Purpose | Convex Deployment |
-|-------------|---------|-------------------|
-| Local dev | Development | Convex Dev |
-| Vercel Preview | PR testing | Convex Dev |
-| Vercel Production | Live app | Convex Prod |
+| Environment       | Purpose     | Convex Deployment |
+| ----------------- | ----------- | ----------------- |
+| Local dev         | Development | Convex Dev        |
+| Vercel Preview    | PR testing  | Convex Dev        |
+| Vercel Production | Live app    | Convex Prod       |
 
 ## Future Considerations
 

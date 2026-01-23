@@ -11,18 +11,18 @@
 
 ## OWASP Top 10 (2021) Mitigation Matrix
 
-| ID | Risk | Mitigation | Status |
-|----|------|------------|--------|
-| A01 | Broken Access Control | Server-side RBAC in Convex; every mutation checks `ctx.auth` | ✅ Implemented |
-| A02 | Cryptographic Failures | TLS 1.3 (Vercel); Clerk handles credential storage; Convex encrypts at rest | ✅ Delegated |
-| A03 | Injection | Convex typed queries (no SQL); React escapes output; URL sanitization | ✅ Implemented |
-| A04 | Insecure Design | Threat modeling documented; deny-by-default RBAC | ✅ Implemented |
-| A05 | Security Misconfiguration | No default credentials; env vars for secrets; CSP headers | ✅ Implemented |
-| A06 | Vulnerable Components | Lockfile pinning; npm audit in CI; Dependabot enabled | ✅ Implemented |
-| A07 | Auth Failures | Delegated to Clerk (MFA, rate limiting, session management) | ✅ Delegated |
-| A08 | Software/Data Integrity | Signed commits optional; lockfile integrity; PR reviews | ⚠️ Partial |
-| A09 | Logging/Monitoring Failures | Structured logging; auth event tracking; OTel ready | ⚠️ Partial |
-| A10 | SSRF | No server-side URL fetching; user links validated client-side only | ✅ Mitigated |
+| ID  | Risk                        | Mitigation                                                                  | Status         |
+| --- | --------------------------- | --------------------------------------------------------------------------- | -------------- |
+| A01 | Broken Access Control       | Server-side RBAC in Convex; every mutation checks `ctx.auth`                | ✅ Implemented |
+| A02 | Cryptographic Failures      | TLS 1.3 (Vercel); Clerk handles credential storage; Convex encrypts at rest | ✅ Delegated   |
+| A03 | Injection                   | Convex typed queries (no SQL); React escapes output; URL sanitization       | ✅ Implemented |
+| A04 | Insecure Design             | Threat modeling documented; deny-by-default RBAC                            | ✅ Implemented |
+| A05 | Security Misconfiguration   | No default credentials; env vars for secrets; CSP headers                   | ✅ Implemented |
+| A06 | Vulnerable Components       | Lockfile pinning; npm audit in CI; Dependabot enabled                       | ✅ Implemented |
+| A07 | Auth Failures               | Delegated to Clerk (MFA, rate limiting, session management)                 | ✅ Delegated   |
+| A08 | Software/Data Integrity     | Signed commits optional; lockfile integrity; PR reviews                     | ⚠️ Partial     |
+| A09 | Logging/Monitoring Failures | Structured logging; auth event tracking; OTel ready                         | ⚠️ Partial     |
+| A10 | SSRF                        | No server-side URL fetching; user links validated client-side only          | ✅ Mitigated   |
 
 ## Authentication Security
 
@@ -43,12 +43,12 @@
 
 ### User-Provided Content
 
-| Field | Validation |
-|-------|------------|
-| `title` | String, max 200 chars, trimmed |
-| `genre` | Enum (whitelist of allowed values) |
-| `link` | URL format validation, https preferred |
-| `blurb` | String, max 500 chars, trimmed |
+| Field   | Validation                             |
+| ------- | -------------------------------------- |
+| `title` | String, max 200 chars, trimmed         |
+| `genre` | Enum (whitelist of allowed values)     |
+| `link`  | URL format validation, https preferred |
+| `blurb` | String, max 500 chars, trimmed         |
 
 ### URL Handling
 
@@ -60,11 +60,11 @@
 
 ### Storage
 
-| Secret Type | Storage Location |
-|-------------|------------------|
-| Clerk keys | Vercel env vars / GitHub Secrets |
+| Secret Type       | Storage Location                 |
+| ----------------- | -------------------------------- |
+| Clerk keys        | Vercel env vars / GitHub Secrets |
 | Convex deploy key | Vercel env vars / GitHub Secrets |
-| Local dev secrets | `.env.local` (gitignored) |
+| Local dev secrets | `.env.local` (gitignored)        |
 
 ### Protection
 

@@ -88,20 +88,36 @@ html {
 /* Utility classes using logical properties (LTR/RTL agnostic) */
 @layer utilities {
   /* Margin logical properties */
-  .ms-auto { margin-inline-start: auto; }
-  .me-auto { margin-inline-end: auto; }
+  .ms-auto {
+    margin-inline-start: auto;
+  }
+  .me-auto {
+    margin-inline-end: auto;
+  }
 
   /* Padding logical properties */
-  .ps-4 { padding-inline-start: 1rem; }
-  .pe-4 { padding-inline-end: 1rem; }
+  .ps-4 {
+    padding-inline-start: 1rem;
+  }
+  .pe-4 {
+    padding-inline-end: 1rem;
+  }
 
   /* Border logical properties */
-  .border-s { border-inline-start-width: 1px; }
-  .border-e { border-inline-end-width: 1px; }
+  .border-s {
+    border-inline-start-width: 1px;
+  }
+  .border-e {
+    border-inline-end-width: 1px;
+  }
 
   /* Position logical properties */
-  .start-0 { inset-inline-start: 0; }
-  .end-0 { inset-inline-end: 0; }
+  .start-0 {
+    inset-inline-start: 0;
+  }
+  .end-0 {
+    inset-inline-end: 0;
+  }
 }
 
 /* ============================================

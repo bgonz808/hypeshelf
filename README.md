@@ -21,22 +21,26 @@ A shared recommendations hub for friends - collect and share the stuff you're hy
 ### Setup
 
 1. Clone the repository:
+
    ```bash
    git clone git@github.com:bgonz808/hypeshelf.git
    cd hypeshelf
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Copy environment template and fill in your values:
+
    ```bash
    cp .env.example .env.local
    ```
 
 4. Start development servers:
+
    ```bash
    npm run dev
    ```
@@ -57,15 +61,15 @@ docs/              # Architecture documentation
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development servers |
-| `npm run build` | Build for production |
-| `npm run lint` | Run ESLint |
-| `npm run typecheck` | Run TypeScript checks |
-| `npm run test` | Run tests |
-| `npm run audit:deps` | Check for vulnerabilities |
-| `npm run audit:secrets` | Scan for leaked secrets |
+| Command                 | Description               |
+| ----------------------- | ------------------------- |
+| `npm run dev`           | Start development servers |
+| `npm run build`         | Build for production      |
+| `npm run lint`          | Run ESLint                |
+| `npm run typecheck`     | Run TypeScript checks     |
+| `npm run test`          | Run tests                 |
+| `npm run audit:deps`    | Check for vulnerabilities |
+| `npm run audit:secrets` | Scan for leaked secrets   |
 
 ## Documentation
 

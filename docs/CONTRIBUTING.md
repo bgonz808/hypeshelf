@@ -64,6 +64,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 | `security` | Security fix |
 
 **Examples:**
+
 ```bash
 feat(auth): add Google OAuth login
 fix(recommendations): prevent XSS in blurb field
