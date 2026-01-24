@@ -26,7 +26,8 @@ tags = ["clerk", "secret", "high-confidence"]
 id = "clerk-publishable-key-in-secret-context"
 description = "Clerk Publishable Key in non-public file"
 regex = '''pk_(live|test)_[A-Za-z0-9]{20,}'''
-path = '''(?i)(\.env(?!\.example)|secret|credential|private)'''
+# Match sensitive files - .env.example is excluded via global allowlist
+path = '''(?i)(\.env\.|secret|credential|private)'''
 tags = ["clerk", "warning"]
 
 # Convex-specific patterns
