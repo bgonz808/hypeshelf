@@ -104,3 +104,6 @@ backups/*.zip
 
 # Claude context files (local only, not for repo)
 CLAUDE.md
+
+# Playwright MCP screenshots
+.playwright-mcp/
