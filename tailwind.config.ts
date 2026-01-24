@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 const config: Config = {
   content: [
@@ -26,13 +27,28 @@ const config: Config = {
           900: "#581c87",
           950: "#3b0764",
         },
+        // Dark mode deep purple theme (Prince-inspired)
+        // All colors tested for WCAG AA contrast compliance
+        "dark-bg": {
+          DEFAULT: "#1a0a2e", // Deep purple - 18.64:1 with white
+          secondary: "#2d1b4e", // Royal purple - 15.24:1 with white
+          tertiary: "#3b0764", // brand-950
+        },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Accessibility variants for high contrast mode support
+    plugin(function ({ addVariant }) {
+      // prefers-contrast: more - user wants higher contrast
+      addVariant("contrast-more", "@media (prefers-contrast: more)");
+      // forced-colors: active - Windows High Contrast Mode
+      addVariant("forced-colors", "@media (forced-colors: active)");
+    }),
+  ],
 };
 
 export default config;

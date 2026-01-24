@@ -33,7 +33,7 @@ export const viewport: Viewport = {
   userScalable: true, // Never disable zoom - accessibility requirement
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a0a2e" }, // Deep purple
   ],
 };
 
@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className={inter.variable}>
-        <body className="min-h-screen bg-white font-sans antialiased dark:bg-gray-950 dark:text-gray-100">
+        <body className="forced-colors:bg-Canvas forced-colors:text-CanvasText min-h-screen bg-white font-sans antialiased contrast-more:bg-white contrast-more:text-black dark:bg-dark-bg dark:text-brand-100">
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </body>
       </html>

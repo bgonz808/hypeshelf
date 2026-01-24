@@ -123,7 +123,7 @@ export function RecommendationCard({
   }, [toggleLike, recommendation._id]);
 
   return (
-    <article className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+    <article className="rounded-lg border border-brand-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-brand-800 dark:bg-dark-bg">
       {/* Header: Media type badge, genre badge, staff pick, time */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -134,7 +134,7 @@ export function RecommendationCard({
             {mediaType.label}
           </span>
           {genre && (
-            <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+            <span className="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900 dark:text-brand-200">
               {genre.label}
             </span>
           )}
@@ -147,19 +147,19 @@ export function RecommendationCard({
         </div>
         <time
           dateTime={new Date(recommendation.createdAt).toISOString()}
-          className="text-xs text-gray-500 dark:text-gray-400"
+          className="text-xs text-brand-500 dark:text-brand-300"
         >
           {formatTimeAgo(recommendation.createdAt)}
         </time>
       </div>
 
       {/* Title as link */}
-      <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+      <h3 className="mb-2 text-lg font-semibold text-brand-900 dark:text-brand-100">
         <a
           href={recommendation.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+          className="hover:text-brand-600 hover:underline dark:hover:text-brand-300"
         >
           {recommendation.title}
           <span className="sr-only"> (opens in new tab)</span>
@@ -167,15 +167,15 @@ export function RecommendationCard({
       </h3>
 
       {/* Blurb */}
-      <p className="mb-4 line-clamp-3 text-sm text-gray-600 dark:text-gray-300">
+      <p className="mb-4 line-clamp-3 text-sm text-brand-700 dark:text-brand-200">
         {recommendation.blurb}
       </p>
 
       {/* Footer: User, likes */}
-      <div className="flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-700">
-        <span className="text-sm text-gray-500 dark:text-gray-400">
+      <div className="flex items-center justify-between border-t border-brand-100 pt-3 dark:border-brand-800">
+        <span className="text-sm text-brand-500 dark:text-brand-300">
           by{" "}
-          <span className="font-medium text-gray-700 dark:text-gray-200">
+          <span className="font-medium text-brand-700 dark:text-brand-100">
             {recommendation.userName}
           </span>
         </span>
@@ -185,7 +185,7 @@ export function RecommendationCard({
           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors ${
             hasLiked
               ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              : "bg-brand-100 text-brand-600 hover:bg-brand-200 dark:bg-brand-900 dark:text-brand-200 dark:hover:bg-brand-800"
           }`}
           aria-pressed={hasLiked ?? false}
           aria-label={`${hasLiked ? "Unlike" : "Like"} ${recommendation.title}. ${recommendation.likeCount} likes.`}
