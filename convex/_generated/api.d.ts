@@ -9,6 +9,7 @@
  */
 
 import type * as likes from "../likes.js";
+import type * as migrations from "../migrations.js";
 import type * as recommendations from "../recommendations.js";
 import type * as scoring from "../scoring.js";
 import type * as users from "../users.js";
@@ -21,6 +22,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   likes: typeof likes;
+  migrations: typeof migrations;
   recommendations: typeof recommendations;
   scoring: typeof scoring;
   users: typeof users;

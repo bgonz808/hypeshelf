@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className={inter.variable}>
-        <body className="min-h-screen bg-white font-sans antialiased">
+        <body className="min-h-screen bg-white font-sans antialiased dark:bg-gray-950 dark:text-gray-100">
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </body>
       </html>

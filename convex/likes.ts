@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { rankByScore, getAlgorithmConfig } from "./scoring";
 
 /**
  * Toggle like on a recommendation
@@ -110,9 +111,6 @@ export const getHot = query({
     const days = args.days ?? 7;
     const limit = args.limit ?? 10;
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-
-    // Dynamic import to avoid circular deps
-    const { rankByScore, getAlgorithmConfig } = await import("./scoring");
 
     // Get algorithm config (supports A/B testing via user identity)
     const identity = await ctx.auth.getUserIdentity();
