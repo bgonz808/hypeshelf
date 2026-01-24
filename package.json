@@ -24,6 +24,8 @@
     "test:a11y": "playwright test --grep @a11y",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
+    "backup:prod": "npx tsx scripts/backup-and-deploy.ts --backup-only",
+    "deploy:safe": "npx tsx scripts/backup-and-deploy.ts",
     "prepare": "husky",
     "audit:deps": "npm audit --audit-level=high",
     "audit:secrets": "gitleaks detect --source . --verbose",

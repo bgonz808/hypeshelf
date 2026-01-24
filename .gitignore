@@ -93,6 +93,9 @@ temp/
 *.tmp
 *.temp
 
+# Convex backups (contain production data - never commit!)
+backups/*.zip
+
 # Husky
 .husky/_/
 

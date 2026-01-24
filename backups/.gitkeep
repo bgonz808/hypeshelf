@@ -1,0 +1,14 @@
+# Convex Production Backups
+# ZIP files are gitignored (contain user data)
+#
+# Filename format: prod-{commitHash}-{clean|dirty}-{timestamp}.zip
+#   Example: prod-abc123f-clean-20260123_191500.zip
+#
+# Commands:
+#   npm run backup:prod   - Create timestamped backup (no deploy)
+#   npm run deploy:safe   - Backup + deploy (recommended)
+#
+# Restore:
+#   npx convex import --prod ./backups/<filename>.zip
+#
+# Keeps last 5 backups, older ones auto-deleted
