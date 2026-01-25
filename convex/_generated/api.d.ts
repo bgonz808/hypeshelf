@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as lib_redaction from "../lib/redaction.js";
 import type * as likes from "../likes.js";
 import type * as migrations from "../migrations.js";
 import type * as recommendations from "../recommendations.js";
@@ -21,6 +22,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "lib/redaction": typeof lib_redaction;
   likes: typeof likes;
   migrations: typeof migrations;
   recommendations: typeof recommendations;

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { rankByScore, getAlgorithmConfig } from "./scoring";
+import { redactRecommendationForPublic } from "./lib/redaction";
 
 /**
  * Toggle like on a recommendation
@@ -100,6 +101,8 @@ export const myLikedIds = query({
 
 /**
  * Get "hot" recommendations using configurable scoring algorithm
+ *
+ * SECURITY: PII redacted for unauthenticated users
  */
 export const getHot = query({
   args: {
@@ -114,6 +117,7 @@ export const getHot = query({
 
     // Get algorithm config (supports A/B testing via user identity)
     const identity = await ctx.auth.getUserIdentity();
+    const isAuthenticated = !!identity;
     const config = args.algorithm
       ? { name: args.algorithm as any, params: {} }
       : getAlgorithmConfig(identity?.subject);
@@ -151,6 +155,13 @@ export const getHot = query({
     const ranked = rankByScore(scoredItems, config);
 
     // Return top N with full recommendation data
-    return ranked.slice(0, limit).map((item) => (item as any)._rec);
+    // SECURITY: Redact PII for unauthenticated users
+    const topItems = ranked.slice(0, limit).map((item) => (item as any)._rec);
+
+    if (!isAuthenticated) {
+      return topItems.map(redactRecommendationForPublic);
+    }
+
+    return topItems;
   },
 });

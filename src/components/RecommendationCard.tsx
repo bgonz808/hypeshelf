@@ -40,7 +40,8 @@ interface Recommendation {
   genre?: Genre;
   link: string;
   blurb: string;
-  userName: string;
+  userName: string; // "????" for unauthenticated users
+  userId: string | null; // null for unauthenticated users (PII redacted)
   likeCount: number;
   isStaffPick: boolean;
   createdAt: number;
@@ -171,13 +172,23 @@ export function RecommendationCard({
         {recommendation.blurb}
       </p>
 
-      {/* Footer: User, likes */}
+      {/* Footer: User attribution, likes */}
       <div className="border-brand-100 dark:border-brand-800 flex items-center justify-between border-t pt-3">
         <span className="text-brand-500 dark:text-brand-300 text-sm">
           by{" "}
-          <span className="text-brand-700 dark:text-brand-100 font-medium">
-            {recommendation.userName}
-          </span>
+          {recommendation.userId === null ? (
+            // PII redacted for unauthenticated users - show mystery placeholder
+            <span
+              className="text-brand-400 dark:text-brand-500 cursor-help font-medium"
+              title="Sign in to see who recommended this"
+            >
+              {recommendation.userName}
+            </span>
+          ) : (
+            <span className="text-brand-700 dark:text-brand-100 font-medium">
+              {recommendation.userName}
+            </span>
+          )}
         </span>
 
         <button

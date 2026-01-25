@@ -1,10 +1,15 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { mediaTypes, genres } from "./schema";
+import type { Doc } from "./_generated/dataModel";
+import { redactRecommendationForPublic } from "./lib/redaction";
 
 /**
  * Get the latest recommendations (public, no auth required)
  * Used on the homepage feed
+ *
+ * SECURITY: PII (userId, userName) is redacted for unauthenticated users.
+ * Sign in to see who recommended what.
  */
 export const list = query({
   args: {
@@ -14,61 +19,83 @@ export const list = query({
     staffPicksOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const isAuthenticated = !!identity;
     const limit = args.limit ?? 20;
+
+    let recommendations: Doc<"recommendations">[];
 
     // Apply filters (priority: staffPicks > genre > mediaType > creation)
     if (args.staffPicksOnly) {
-      return await ctx.db
+      recommendations = await ctx.db
         .query("recommendations")
         .withIndex("by_staff_pick", (q) => q.eq("isStaffPick", true))
         .order("desc")
         .take(limit);
-    }
-
-    if (args.genre) {
+    } else if (args.genre) {
       const genre = args.genre;
-      return await ctx.db
+      recommendations = await ctx.db
         .query("recommendations")
         .withIndex("by_genre", (q) => q.eq("genre", genre))
         .order("desc")
         .take(limit);
-    }
-
-    if (args.mediaType) {
+    } else if (args.mediaType) {
       const mediaType = args.mediaType;
-      return await ctx.db
+      recommendations = await ctx.db
         .query("recommendations")
         .withIndex("by_media_type", (q) => q.eq("mediaType", mediaType))
         .order("desc")
         .take(limit);
+    } else {
+      recommendations = await ctx.db
+        .query("recommendations")
+        .withIndex("by_creation")
+        .order("desc")
+        .take(limit);
     }
 
-    return await ctx.db
-      .query("recommendations")
-      .withIndex("by_creation")
-      .order("desc")
-      .take(limit);
+    // Redact PII for unauthenticated users
+    if (!isAuthenticated) {
+      return recommendations.map(redactRecommendationForPublic);
+    }
+
+    return recommendations;
   },
 });
 
 /**
  * Get a single recommendation by ID (public)
+ *
+ * SECURITY: PII redacted for unauthenticated users
  */
 export const get = query({
   args: { id: v.id("recommendations") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const identity = await ctx.auth.getUserIdentity();
+    const rec = await ctx.db.get(args.id);
+
+    if (!rec) return null;
+
+    // Redact for unauthenticated users
+    if (!identity) {
+      return redactRecommendationForPublic(rec);
+    }
+
+    return rec;
   },
 });
 
 /**
  * Get staff picks (curated, premium section)
+ *
+ * SECURITY: PII redacted for unauthenticated users
  */
 export const getStaffPicks = query({
   args: {
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
     const limit = args.limit ?? 6;
 
     const picks = await ctx.db
@@ -77,18 +104,26 @@ export const getStaffPicks = query({
       .order("desc")
       .take(limit);
 
+    // Redact for unauthenticated users
+    if (!identity) {
+      return picks.map(redactRecommendationForPublic);
+    }
+
     return picks;
   },
 });
 
 /**
  * Get popular recommendations (most liked overall)
+ *
+ * SECURITY: PII redacted for unauthenticated users
  */
 export const getPopular = query({
   args: {
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
     const limit = args.limit ?? 10;
 
     const popular = await ctx.db
@@ -96,6 +131,11 @@ export const getPopular = query({
       .withIndex("by_likes")
       .order("desc")
       .take(limit);
+
+    // Redact for unauthenticated users
+    if (!identity) {
+      return popular.map(redactRecommendationForPublic);
+    }
 
     return popular;
   },
