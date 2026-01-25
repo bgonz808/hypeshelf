@@ -44,7 +44,7 @@ export default function RootLayout({
 }>) {
   // Note: dir attribute will be set dynamically by next-intl based on locale
   return (
-    <ClerkProvider>
+    <ClerkProvider dynamic>
       <html lang="en" className={inter.variable}>
         <body className="forced-colors:bg-Canvas forced-colors:text-CanvasText min-h-screen bg-white font-sans antialiased contrast-more:bg-white contrast-more:text-black dark:bg-dark-bg dark:text-brand-100">
           <ConvexClientProvider>{children}</ConvexClientProvider>
