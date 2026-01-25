@@ -35,10 +35,6 @@ const nextConfig = {
     // Type errors will fail the build
     ignoreBuildErrors: false,
   },
-  eslint: {
-    // Lint errors will fail the build
-    ignoreDuringBuilds: false,
-  },
 };
 
 module.exports = nextConfig;
