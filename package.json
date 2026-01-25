@@ -34,6 +34,7 @@
     "build:logos:watch": "npx tsx watch scripts/build-logos.ts",
     "secrets:migrate": "npx tsx scripts/migrate-secrets.ts",
     "security:check": "npx tsx scripts/security-check.ts",
+    "security:drift": "npx tsx scripts/detect-tool-drift.ts",
     "version:check": "npx tsx scripts/check-version.ts"
   },
   "dependencies": {

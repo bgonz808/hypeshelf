@@ -81,17 +81,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Semgrep - SAST scanner with 2000+ security rules
-      # Catches: XSS, injection, insecure crypto, hardcoded secrets, etc.
+      # Tool drift detection - fail if new languages/frameworks aren't covered
+      - name: Detect Tool Drift
+        run: npx tsx scripts/detect-tool-drift.ts
+
+      # Semgrep - SAST scanner with paranoid config (711 rules)
+      # Catches: XSS, injection, insecure crypto, hardcoded secrets, OWASP, CWE
       - name: Semgrep Scan
         uses: semgrep/semgrep-action@v1
         with:
           config: >-
             p/security-audit
             p/secrets
+            p/owasp-top-ten
+            p/cwe-top-25
             p/typescript
             p/react
             p/nextjs
+            p/jwt
+            p/xss
+            p/sql-injection
           generateSarif: "1"
 
       - name: Upload Semgrep SARIF
