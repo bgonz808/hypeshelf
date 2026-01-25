@@ -29,6 +29,7 @@ describe("isValidUrl", () => {
     expect(isValidUrl("not-a-url")).toBe(false);
     expect(isValidUrl("")).toBe(false);
     expect(isValidUrl("ftp://example.com")).toBe(false);
+    // eslint-disable-next-line no-script-url -- Intentional: testing XSS vector rejection
     expect(isValidUrl("javascript:alert(1)")).toBe(false);
   });
 });
