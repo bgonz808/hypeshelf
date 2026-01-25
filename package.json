@@ -37,7 +37,7 @@
     "version:check": "npx tsx scripts/check-version.ts"
   },
   "dependencies": {
-    "@clerk/nextjs": "6.36.9",
+    "@clerk/nextjs": "6.36.10",
     "@eslint/eslintrc": "3.3.1",
     "@eslint/js": "9.24.0",
     "clsx": "2.1.1",
