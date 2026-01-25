@@ -17,12 +17,7 @@ const config = [
 
   // Ignore patterns
   {
-    ignores: [
-      "node_modules/**",
-      ".next/**",
-      "out/**",
-      "convex/_generated/**",
-    ],
+    ignores: ["node_modules/**", ".next/**", "out/**", "convex/_generated/**"],
   },
 ];
 
