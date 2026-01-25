@@ -111,11 +111,11 @@ export default function AddRecommendation() {
         <Header />
         <main className="mx-auto max-w-2xl px-4 py-8">
           <div className="animate-pulse">
-            <div className="mb-8 h-8 w-48 rounded bg-gray-200" />
+            <div className="mb-8 h-8 w-48 rounded-sm bg-gray-200" />
             <div className="space-y-4">
-              <div className="h-10 rounded bg-gray-200" />
-              <div className="h-10 rounded bg-gray-200" />
-              <div className="h-32 rounded bg-gray-200" />
+              <div className="h-10 rounded-sm bg-gray-200" />
+              <div className="h-10 rounded-sm bg-gray-200" />
+              <div className="h-32 rounded-sm bg-gray-200" />
             </div>
           </div>
         </main>
@@ -169,7 +169,7 @@ export default function AddRecommendation() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
               placeholder="What are you recommending?"
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -189,7 +189,7 @@ export default function AddRecommendation() {
                 id="mediaType"
                 value={mediaType}
                 onChange={(e) => setMediaType(e.target.value as MediaType)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
               >
                 {MEDIA_TYPES.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -210,7 +210,7 @@ export default function AddRecommendation() {
                 id="genre"
                 value={genre}
                 onChange={(e) => setGenre(e.target.value as Genre | "")}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
               >
                 <option value="">Select a genre (optional)</option>
                 {GENRES.map((g) => (
@@ -234,7 +234,7 @@ export default function AddRecommendation() {
               id="link"
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
               placeholder="https://..."
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -255,7 +255,7 @@ export default function AddRecommendation() {
               onChange={(e) => setBlurb(e.target.value)}
               maxLength={500}
               rows={4}
-              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
               placeholder="Share why others should check this out..."
             />
             <p className="mt-1 text-xs text-gray-500">

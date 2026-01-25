@@ -123,7 +123,7 @@ export function RecommendationCard({
   }, [toggleLike, recommendation._id]);
 
   return (
-    <article className="rounded-lg border border-brand-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-brand-800 dark:bg-dark-bg">
+    <article className="border-brand-200 dark:border-brand-800 dark:bg-dark-bg rounded-lg border bg-white p-4 shadow-xs transition-shadow hover:shadow-md">
       {/* Header: Media type badge, genre badge, staff pick, time */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -134,7 +134,7 @@ export function RecommendationCard({
             {mediaType.label}
           </span>
           {genre && (
-            <span className="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900 dark:text-brand-200">
+            <span className="bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
               {genre.label}
             </span>
           )}
@@ -147,19 +147,19 @@ export function RecommendationCard({
         </div>
         <time
           dateTime={new Date(recommendation.createdAt).toISOString()}
-          className="text-xs text-brand-500 dark:text-brand-300"
+          className="text-brand-500 dark:text-brand-300 text-xs"
         >
           {formatTimeAgo(recommendation.createdAt)}
         </time>
       </div>
 
       {/* Title as link */}
-      <h3 className="mb-2 text-lg font-semibold text-brand-900 dark:text-brand-100">
+      <h3 className="text-brand-900 dark:text-brand-100 mb-2 text-lg font-semibold">
         <a
           href={recommendation.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-brand-600 hover:underline dark:hover:text-brand-300"
+          className="hover:text-brand-600 dark:hover:text-brand-300 hover:underline"
         >
           {recommendation.title}
           <span className="sr-only"> (opens in new tab)</span>
@@ -167,15 +167,15 @@ export function RecommendationCard({
       </h3>
 
       {/* Blurb */}
-      <p className="mb-4 line-clamp-3 text-sm text-brand-700 dark:text-brand-200">
+      <p className="text-brand-700 dark:text-brand-200 mb-4 line-clamp-3 text-sm">
         {recommendation.blurb}
       </p>
 
       {/* Footer: User, likes */}
-      <div className="flex items-center justify-between border-t border-brand-100 pt-3 dark:border-brand-800">
-        <span className="text-sm text-brand-500 dark:text-brand-300">
+      <div className="border-brand-100 dark:border-brand-800 flex items-center justify-between border-t pt-3">
+        <span className="text-brand-500 dark:text-brand-300 text-sm">
           by{" "}
-          <span className="font-medium text-brand-700 dark:text-brand-100">
+          <span className="text-brand-700 dark:text-brand-100 font-medium">
             {recommendation.userName}
           </span>
         </span>

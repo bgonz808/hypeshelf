@@ -1,123 +1,159 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-rgb: 255, 255, 255;
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+@theme {
+  --color-brand-50: #faf5ff;
+  --color-brand-100: #f3e8ff;
+  --color-brand-200: #e9d5ff;
+  --color-brand-300: #d8b4fe;
+  --color-brand-400: #c084fc;
+  --color-brand-500: #a855f7;
+  --color-brand-600: #9333ea;
+  --color-brand-700: #7e22ce;
+  --color-brand-800: #6b21a8;
+  --color-brand-900: #581c87;
+  --color-brand-950: #3b0764;
+
+  --color-dark-bg: #1a0a2e;
+  --color-dark-bg-secondary: #2d1b4e;
+  --color-dark-bg-tertiary: #3b0764;
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-rgb: 10, 10, 10;
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+@utility touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+@utility ms-auto {
+  /* Margin logical properties */
+  margin-inline-start: auto;
+}
+@utility me-auto {
+  margin-inline-end: auto;
+}
+@utility ps-4 {
+  /* Padding logical properties */
+  padding-inline-start: 1rem;
+}
+@utility pe-4 {
+  padding-inline-end: 1rem;
+}
+@utility border-s {
+  /* Border logical properties */
+  border-inline-start-width: 1px;
+}
+@utility border-e {
+  border-inline-end-width: 1px;
+}
+@utility start-0 {
+  /* Position logical properties */
+  inset-inline-start: 0;
+}
+@utility end-0 {
+  inset-inline-end: 0;
 }
 
-/* ============================================
+@layer utilities {
+  :root {
+    --foreground-rgb: 0, 0, 0;
+    --background-rgb: 255, 255, 255;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --foreground-rgb: 255, 255, 255;
+      --background-rgb: 10, 10, 10;
+    }
+  }
+
+  body {
+    color: rgb(var(--foreground-rgb));
+    background: rgb(var(--background-rgb));
+  }
+
+  /* ============================================
    ACCESSIBILITY
    ============================================ */
 
-/* Focus visible styles for keyboard navigation */
-:focus-visible {
-  outline: 2px solid rgb(168 85 247);
-  outline-offset: 2px;
-}
+  /* Focus visible styles for keyboard navigation */
+  :focus-visible {
+    outline: 2px solid rgb(168 85 247);
+    outline-offset: 2px;
+  }
 
-/* Skip link for keyboard navigation */
-.skip-link {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: rgb(168 85 247);
-  color: white;
-  padding: 8px;
-  z-index: 100;
-}
+  /* Skip link for keyboard navigation */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: rgb(168 85 247);
+    color: white;
+    padding: 8px;
+    z-index: 100;
+  }
 
-.skip-link:focus {
-  top: 0;
-}
+  .skip-link:focus {
+    top: 0;
+  }
 
-/* ============================================
+  /* ============================================
    TOUCH & MOBILE OPTIMIZATION
    ============================================ */
 
-/* Minimum touch target size (WCAG 2.5.5 - 44x44px) */
-@layer components {
-  .touch-target {
-    min-width: 44px;
-    min-height: 44px;
-  }
+  /* Minimum touch target size (WCAG 2.5.5 - 44x44px) */
 }
 
-/* Prevent text size adjustment on orientation change (iOS) */
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-/* Smooth scrolling with reduced motion preference respect */
-@media (prefers-reduced-motion: no-preference) {
+@layer utilities {
+  /* Prevent text size adjustment on orientation change (iOS) */
   html {
-    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
-}
 
-/* Tap highlight color for touch devices */
-* {
-  -webkit-tap-highlight-color: rgba(168, 85, 247, 0.2);
-}
+  /* Smooth scrolling with reduced motion preference respect */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
 
-/* ============================================
+  /* Tap highlight color for touch devices */
+  * {
+    -webkit-tap-highlight-color: rgba(168, 85, 247, 0.2);
+  }
+
+  /* ============================================
    RTL (RIGHT-TO-LEFT) SUPPORT
    Using CSS logical properties for bidirectional layouts
    ============================================ */
 
-/* When dir="rtl" is set on html or a container */
-[dir="rtl"] {
-  /* Ensure proper text alignment */
-  text-align: right;
-}
-
-/* Utility classes using logical properties (LTR/RTL agnostic) */
-@layer utilities {
-  /* Margin logical properties */
-  .ms-auto {
-    margin-inline-start: auto;
-  }
-  .me-auto {
-    margin-inline-end: auto;
+  /* When dir="rtl" is set on html or a container */
+  [dir="rtl"] {
+    /* Ensure proper text alignment */
+    text-align: right;
   }
 
-  /* Padding logical properties */
-  .ps-4 {
-    padding-inline-start: 1rem;
-  }
-  .pe-4 {
-    padding-inline-end: 1rem;
-  }
-
-  /* Border logical properties */
-  .border-s {
-    border-inline-start-width: 1px;
-  }
-  .border-e {
-    border-inline-end-width: 1px;
-  }
-
-  /* Position logical properties */
-  .start-0 {
-    inset-inline-start: 0;
-  }
-  .end-0 {
-    inset-inline-end: 0;
-  }
+  /* Utility classes using logical properties (LTR/RTL agnostic) */
 }
 
 /* ============================================

@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <ClerkProvider dynamic>
       <html lang="en" className={inter.variable}>
-        <body className="forced-colors:bg-Canvas forced-colors:text-CanvasText min-h-screen bg-white font-sans antialiased contrast-more:bg-white contrast-more:text-black dark:bg-dark-bg dark:text-brand-100">
+        <body className="forced-colors:bg-Canvas forced-colors:text-CanvasText dark:bg-dark-bg dark:text-brand-100 min-h-screen bg-white font-sans antialiased contrast-more:bg-white contrast-more:text-black">
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </body>
       </html>
