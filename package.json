@@ -38,15 +38,15 @@
     "version:check": "npx tsx scripts/check-version.ts"
   },
   "dependencies": {
-    "@clerk/nextjs": "6.36.9",
-    "@eslint/eslintrc": "3.3.1",
-    "@eslint/js": "9.24.0",
+    "@clerk/nextjs": "6.36.10",
+    "@eslint/eslintrc": "3.3.3",
+    "@eslint/js": "9.39.2",
     "clsx": "2.1.1",
     "convex": "1.31.6",
-    "next": "16.1.4",
+    "next": "16.1.5",
     "next-intl": "4.7.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "tailwind-merge": "2.6.0"
   },
   "devDependencies": {
@@ -64,7 +64,7 @@
     "@vitejs/plugin-react": "4.7.0",
     "@vitest/coverage-v8": "4.0.18",
     "eslint": "9.39.2",
-    "eslint-config-next": "16.1.4",
+    "eslint-config-next": "16.1.5",
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-security": "3.0.1",
     "husky": "9.1.7",
