@@ -141,9 +141,11 @@ function scanFile(filePath: string): Finding[] {
     const line = lines[i];
     if (!line) continue;
 
-    // Skip comments
+    // Skip comments and TypeScript type declarations (no runtime code)
     const trimmed = line.trim();
     if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue;
+    if (trimmed.startsWith("type ") || trimmed.startsWith("interface "))
+      continue;
 
     for (const pattern of PATTERNS) {
       // Reset regex state
