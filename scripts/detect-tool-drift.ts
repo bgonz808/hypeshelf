@@ -26,30 +26,30 @@ const CONFIGURED_SCANNING = {
   ],
 };
 
-// File extension to language mapping
-const EXTENSION_MAP: Record<string, string> = {
-  ".ts": "typescript",
-  ".tsx": "typescript",
-  ".js": "javascript",
-  ".jsx": "javascript",
-  ".mjs": "javascript",
-  ".cjs": "javascript",
-  ".py": "python",
-  ".go": "go",
-  ".rs": "rust",
-  ".rb": "ruby",
-  ".java": "java",
-  ".kt": "kotlin",
-  ".scala": "scala",
-  ".php": "php",
-  ".cs": "csharp",
-  ".swift": "swift",
-  ".m": "objectivec",
-  ".c": "c",
-  ".cpp": "cpp",
-  ".h": "c",
-  ".hpp": "cpp",
-};
+// File extension to language mapping (Map for safe key lookup)
+const EXTENSION_MAP = new Map<string, string>([
+  [".ts", "typescript"],
+  [".tsx", "typescript"],
+  [".js", "javascript"],
+  [".jsx", "javascript"],
+  [".mjs", "javascript"],
+  [".cjs", "javascript"],
+  [".py", "python"],
+  [".go", "go"],
+  [".rs", "rust"],
+  [".rb", "ruby"],
+  [".java", "java"],
+  [".kt", "kotlin"],
+  [".scala", "scala"],
+  [".php", "php"],
+  [".cs", "csharp"],
+  [".swift", "swift"],
+  [".m", "objectivec"],
+  [".c", "c"],
+  [".cpp", "cpp"],
+  [".h", "c"],
+  [".hpp", "cpp"],
+]);
 
 // Framework detection patterns
 const FRAMEWORK_PATTERNS: Record<string, { files: string[]; deps: string[] }> =
@@ -131,8 +131,9 @@ function detectLanguages(files: string[]): Set<string> {
 
   for (const file of files) {
     const ext = path.extname(file).toLowerCase();
-    if (EXTENSION_MAP[ext]) {
-      languages.add(EXTENSION_MAP[ext]);
+    const lang = EXTENSION_MAP.get(ext);
+    if (lang) {
+      languages.add(lang);
     }
   }
 
@@ -153,7 +154,7 @@ function detectFrameworks(rootDir: string): Set<string> {
 
     for (const [framework, patterns] of Object.entries(FRAMEWORK_PATTERNS)) {
       for (const dep of patterns.deps) {
-        if (allDeps[dep]) {
+        if (Object.hasOwn(allDeps, dep)) {
           frameworks.add(framework);
           break;
         }
@@ -189,43 +190,43 @@ function checkDrift(rootDir: string): DriftReport {
 
   const recommendations: string[] = [];
 
-  // Language-specific recommendations
-  const langToSemgrep: Record<string, string> = {
-    python: "p/python",
-    go: "p/golang",
-    rust: "p/rust",
-    ruby: "p/ruby",
-    java: "p/java",
-    kotlin: "p/kotlin",
-    php: "p/php",
-    csharp: "p/csharp",
-    c: "p/c",
-    cpp: "p/cpp",
-  };
+  // Language-specific recommendations (Map for safe key lookup)
+  const langToSemgrep = new Map<string, string>([
+    ["python", "p/python"],
+    ["go", "p/golang"],
+    ["rust", "p/rust"],
+    ["ruby", "p/ruby"],
+    ["java", "p/java"],
+    ["kotlin", "p/kotlin"],
+    ["php", "p/php"],
+    ["csharp", "p/csharp"],
+    ["c", "p/c"],
+    ["cpp", "p/cpp"],
+  ]);
 
   for (const lang of newLanguages) {
-    if (langToSemgrep[lang]) {
+    const ruleset = langToSemgrep.get(lang);
+    if (ruleset) {
       recommendations.push(
-        `Add Semgrep ruleset '${langToSemgrep[lang]}' for ${lang} files`
+        `Add Semgrep ruleset '${ruleset}' for ${lang} files`
       );
     }
     recommendations.push(`Add CodeQL language '${lang}' to codeql.yml`);
   }
 
-  // Framework-specific recommendations
-  const fwToSemgrep: Record<string, string> = {
-    express: "p/expressjs",
-    django: "p/django",
-    flask: "p/flask",
-    rails: "p/ruby-on-rails",
-    springboot: "p/java-spring",
-  };
+  // Framework-specific recommendations (Map for safe key lookup)
+  const fwToSemgrep = new Map<string, string>([
+    ["express", "p/expressjs"],
+    ["django", "p/django"],
+    ["flask", "p/flask"],
+    ["rails", "p/ruby-on-rails"],
+    ["springboot", "p/java-spring"],
+  ]);
 
   for (const fw of newFrameworks) {
-    if (fwToSemgrep[fw]) {
-      recommendations.push(
-        `Add Semgrep ruleset '${fwToSemgrep[fw]}' for ${fw}`
-      );
+    const ruleset = fwToSemgrep.get(fw);
+    if (ruleset) {
+      recommendations.push(`Add Semgrep ruleset '${ruleset}' for ${fw}`);
     }
   }
 
