@@ -107,3 +107,7 @@ CLAUDE.md
 
 # Playwright MCP screenshots
 .playwright-mcp/
+
+# Playwright test artifacts (regenerated on each run)
+test-results/
+playwright-report/
