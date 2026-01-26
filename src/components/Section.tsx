@@ -21,14 +21,12 @@ export function Section({
       <header className="mb-6">
         <h2
           id={`section-${title.toLowerCase().replace(/\s+/g, "-")}`}
-          className="text-brand-900 dark:text-brand-100 text-2xl font-bold"
+          className="text-primary text-2xl font-bold"
         >
           {title}
         </h2>
         {description && (
-          <p className="text-brand-600 dark:text-brand-300 mt-1 text-sm">
-            {description}
-          </p>
+          <p className="text-secondary mt-1 text-sm">{description}</p>
         )}
       </header>
       {children}

@@ -57,8 +57,8 @@ export function LatestSection() {
             aria-controls="latest-recommendations"
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               selectedMediaType === type.value
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-accent text-on-accent"
+                : "bg-surface-secondary text-secondary hover-bg-surface-secondary"
             }`}
           >
             {type.label}
@@ -75,7 +75,7 @@ export function LatestSection() {
             ))}
           </div>
         ) : latestRecs.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-500">
+          <p className="border-default text-muted rounded-lg border border-dashed p-8 text-center">
             No recommendations in this category yet. Be the first to add one!
           </p>
         ) : (

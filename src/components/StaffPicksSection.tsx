@@ -21,7 +21,7 @@ export function StaffPicksSection() {
           ))}
         </div>
       ) : staffPicks.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-500">
+        <p className="border-default text-muted rounded-lg border border-dashed p-8 text-center">
           No staff picks yet. Check back soon!
         </p>
       ) : (

@@ -52,21 +52,50 @@ interface RecommendationCardProps {
   showStaffBadge?: boolean;
 }
 
+// Media types grouped by content category (semantic meaning)
 const MEDIA_TYPE_CONFIG: Record<
   MediaType,
   { label: string; emoji: string; color: string }
 > = {
-  movie: { label: "Movie", emoji: "🎬", color: "bg-red-100 text-red-800" },
-  tv: { label: "TV", emoji: "📺", color: "bg-purple-100 text-purple-800" },
-  book: { label: "Book", emoji: "📚", color: "bg-amber-100 text-amber-800" },
-  music: { label: "Music", emoji: "🎵", color: "bg-green-100 text-green-800" },
+  // Entertainment: energetic, exciting content
+  movie: {
+    label: "Movie",
+    emoji: "🎬",
+    color: "bg-cat-entertainment text-cat-entertainment",
+  },
+  tv: {
+    label: "TV",
+    emoji: "📺",
+    color: "bg-cat-entertainment text-cat-entertainment",
+  },
+  game: {
+    label: "Game",
+    emoji: "🎮",
+    color: "bg-cat-entertainment text-cat-entertainment",
+  },
+  // Knowledge: calm, trustworthy content
+  book: {
+    label: "Book",
+    emoji: "📚",
+    color: "bg-cat-knowledge text-cat-knowledge",
+  },
   podcast: {
     label: "Podcast",
     emoji: "🎙️",
-    color: "bg-blue-100 text-blue-800",
+    color: "bg-cat-knowledge text-cat-knowledge",
   },
-  game: { label: "Game", emoji: "🎮", color: "bg-indigo-100 text-indigo-800" },
-  other: { label: "Other", emoji: "✨", color: "bg-gray-100 text-gray-800" },
+  // Creative: expressive, artistic content
+  music: {
+    label: "Music",
+    emoji: "🎵",
+    color: "bg-cat-creative text-cat-creative",
+  },
+  // Neutral: uncategorized
+  other: {
+    label: "Other",
+    emoji: "✨",
+    color: "bg-cat-neutral text-cat-neutral",
+  },
 };
 
 const GENRE_CONFIG: Record<Genre, { label: string }> = {
@@ -124,7 +153,7 @@ export function RecommendationCard({
   }, [toggleLike, recommendation._id]);
 
   return (
-    <article className="border-brand-200 dark:border-brand-800 dark:bg-dark-bg rounded-lg border bg-white p-4 shadow-xs transition-shadow hover:shadow-md">
+    <article className="bg-surface border-muted rounded-lg border p-4 shadow-xs transition-shadow hover:shadow-md">
       {/* Header: Media type badge, genre badge, staff pick, time */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -135,12 +164,12 @@ export function RecommendationCard({
             {mediaType.label}
           </span>
           {genre && (
-            <span className="bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
+            <span className="bg-accent-light text-accent inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
               {genre.label}
             </span>
           )}
           {showStaffBadge && recommendation.isStaffPick && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+            <span className="bg-highlight text-highlight inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium">
               <span aria-hidden="true">⭐</span>
               Staff Pick
             </span>
@@ -148,19 +177,19 @@ export function RecommendationCard({
         </div>
         <time
           dateTime={new Date(recommendation.createdAt).toISOString()}
-          className="text-brand-500 dark:text-brand-300 text-xs"
+          className="text-muted text-xs"
         >
           {formatTimeAgo(recommendation.createdAt)}
         </time>
       </div>
 
       {/* Title as link */}
-      <h3 className="text-brand-900 dark:text-brand-100 mb-2 text-lg font-semibold">
+      <h3 className="text-primary mb-2 text-lg font-semibold">
         <a
           href={recommendation.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-brand-600 dark:hover:text-brand-300 hover:underline"
+          className="hover:text-accent hover:underline"
         >
           {recommendation.title}
           <span className="sr-only"> (opens in new tab)</span>
@@ -168,24 +197,24 @@ export function RecommendationCard({
       </h3>
 
       {/* Blurb */}
-      <p className="text-brand-700 dark:text-brand-200 mb-4 line-clamp-3 text-sm">
+      <p className="text-secondary mb-4 line-clamp-3 text-sm">
         {recommendation.blurb}
       </p>
 
       {/* Footer: User attribution, likes */}
-      <div className="border-brand-100 dark:border-brand-800 flex items-center justify-between border-t pt-3">
-        <span className="text-brand-500 dark:text-brand-300 text-sm">
+      <div className="border-muted flex items-center justify-between border-t pt-3">
+        <span className="text-muted text-sm">
           by{" "}
           {recommendation.userId === null ? (
             // PII redacted for unauthenticated users - show mystery placeholder
             <span
-              className="text-brand-400 dark:text-brand-500 cursor-help font-medium"
+              className="text-muted cursor-help font-medium"
               title="Sign in to see who recommended this"
             >
               {recommendation.userName}
             </span>
           ) : (
-            <span className="text-brand-700 dark:text-brand-100 font-medium">
+            <span className="text-primary font-medium">
               {recommendation.userName}
             </span>
           )}
@@ -195,8 +224,8 @@ export function RecommendationCard({
           onClick={handleLike}
           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors ${
             hasLiked
-              ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
-              : "bg-brand-100 text-brand-600 hover:bg-brand-200 dark:bg-brand-900 dark:text-brand-200 dark:hover:bg-brand-800"
+              ? "bg-error text-error hover:bg-error"
+              : "bg-accent-light text-accent hover:bg-accent-light"
           }`}
           aria-pressed={hasLiked ?? false}
           aria-label={`${hasLiked ? "Unlike" : "Like"} ${recommendation.title}. ${recommendation.likeCount} likes.`}
