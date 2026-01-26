@@ -1,5 +1,120 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import type { AxeResults, Result as AxeViolation } from "axe-core";
+import * as fs from "fs";
+import * as path from "path";
+
+/**
+ * Configuration for violation screenshot capture
+ */
+const VIOLATION_CONFIG = {
+  maxPerType: 3, // Max screenshots per violation type
+  outputDir: "test-results/violations",
+  impactPriority: ["critical", "serious", "moderate", "minor"] as const,
+};
+
+type ImpactLevel = (typeof VIOLATION_CONFIG.impactPriority)[number];
+
+interface ViolationSummary {
+  id: string;
+  impact: ImpactLevel;
+  description: string;
+  total: number;
+  examples: Array<{ selector: string; html: string }>;
+  overflow: number;
+}
+
+/**
+ * Capture stratified violation screenshots - prioritized by impact, capped per type
+ */
+async function captureViolationScreenshots(
+  page: Page,
+  violations: AxeViolation[],
+  testName: string
+): Promise<ViolationSummary[]> {
+  if (violations.length === 0) return [];
+
+  // Ensure output directory exists
+  const outputDir = path.join(VIOLATION_CONFIG.outputDir, testName);
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  // Sort by impact priority, then by violation type
+  const sorted = [...violations].sort((a, b) => {
+    const impactDiff =
+      VIOLATION_CONFIG.impactPriority.indexOf(a.impact as ImpactLevel) -
+      VIOLATION_CONFIG.impactPriority.indexOf(b.impact as ImpactLevel);
+    if (impactDiff !== 0) return impactDiff;
+    return a.id.localeCompare(b.id);
+  });
+
+  const summaries: ViolationSummary[] = [];
+
+  for (const violation of sorted) {
+    const examples = violation.nodes.slice(0, VIOLATION_CONFIG.maxPerType);
+    const summary: ViolationSummary = {
+      id: violation.id,
+      impact: violation.impact as ImpactLevel,
+      description: violation.help,
+      total: violation.nodes.length,
+      examples: examples.map((n) => ({
+        selector: n.target[0] as string,
+        html: n.html,
+      })),
+      overflow: Math.max(
+        0,
+        violation.nodes.length - VIOLATION_CONFIG.maxPerType
+      ),
+    };
+    summaries.push(summary);
+
+    // Capture screenshots for examples only
+    for (let i = 0; i < examples.length; i++) {
+      const node = examples[i];
+      const selector = node.target[0] as string;
+      try {
+        const element = page.locator(selector).first();
+        if (await element.isVisible()) {
+          await element.screenshot({
+            path: path.join(
+              outputDir,
+              `${violation.impact}-${violation.id}-${i + 1}.png`
+            ),
+          });
+        }
+      } catch {
+        // Element may not be screenshottable (e.g., zero size)
+        console.warn(`Could not screenshot: ${selector}`);
+      }
+    }
+  }
+
+  // Log stratified summary
+  console.log("\n📊 Violation Summary (by impact → type):");
+  console.log("─".repeat(60));
+
+  let currentImpact: ImpactLevel | null = null;
+  for (const s of summaries) {
+    if (s.impact !== currentImpact) {
+      currentImpact = s.impact;
+      const icon =
+        s.impact === "critical"
+          ? "🔴"
+          : s.impact === "serious"
+            ? "🟠"
+            : s.impact === "moderate"
+              ? "🟡"
+              : "🔵";
+      console.log(`\n${icon} ${s.impact.toUpperCase()}`);
+    }
+    const overflowNote = s.overflow > 0 ? ` (+${s.overflow} more)` : "";
+    console.log(`   ${s.id}: ${s.total} issue(s)${overflowNote}`);
+    console.log(`      "${s.description}"`);
+  }
+  console.log("\n" + "─".repeat(60));
+  console.log(`Screenshots saved to: ${outputDir}`);
+
+  return summaries;
+}
 
 /**
  * Color Mode Validation Tests
@@ -111,11 +226,12 @@ test.describe("Color Mode Accessibility", () => {
           .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
           .analyze();
 
-        // Log violations for debugging
+        // Capture stratified screenshots for any violations
         if (accessibilityScanResults.violations.length > 0) {
-          console.log(
-            `${mode.label} violations:`,
-            JSON.stringify(accessibilityScanResults.violations, null, 2)
+          await captureViolationScreenshots(
+            page,
+            accessibilityScanResults.violations,
+            `aa-${mode.name}`
           );
         }
 
@@ -192,7 +308,13 @@ test.describe("Color Mode Accessibility", () => {
           );
 
           if (contrastViolations.length > 0) {
-            // Log AAA violations as warnings - AAA is stretch goal, not required
+            // Capture screenshots for AAA violations (informational)
+            await captureViolationScreenshots(
+              page,
+              contrastViolations,
+              `aaa-${mode.name}`
+            );
+
             console.warn(
               `[AAA] ${mode.label} has ${contrastViolations.length} contrast violation(s) below 7:1 ratio.`,
               `This is informational - WCAG AA (4.5:1) compliance is verified separately.`
