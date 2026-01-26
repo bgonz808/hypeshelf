@@ -10,6 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Permissions for SARIF upload to Security tab
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   lint-and-typecheck:
     name: Lint & Type Check
