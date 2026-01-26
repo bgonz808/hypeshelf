@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import type { AxeResults, Result as AxeViolation } from "axe-core";
+import type { Result as AxeViolation } from "axe-core";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -8,24 +8,78 @@ import * as path from "path";
  * Configuration for violation screenshot capture
  */
 const VIOLATION_CONFIG = {
-  maxPerType: 3, // Max screenshots per violation type
+  maxScreenshotsPerType: 3, // Cap screenshots (storage), but log ALL violations
   outputDir: "test-results/violations",
   impactPriority: ["critical", "serious", "moderate", "minor"] as const,
 };
 
 type ImpactLevel = (typeof VIOLATION_CONFIG.impactPriority)[number];
 
+interface SelectorPattern {
+  pattern: string;
+  count: number;
+  selectors: string[];
+}
+
 interface ViolationSummary {
   id: string;
   impact: ImpactLevel;
   description: string;
   total: number;
-  examples: Array<{ selector: string; html: string }>;
-  overflow: number;
+  screenshotCount: number;
+  selectorPatterns: SelectorPattern[];
+  allSelectors: string[];
 }
 
 /**
- * Capture stratified violation screenshots - prioritized by impact, capped per type
+ * Extract the primary class/id pattern from a selector for grouping
+ * e.g., ".bg-surface > .text-accent" → ".text-accent"
+ */
+function extractSelectorPattern(selector: string): string {
+  // Get the last meaningful part of the selector (most specific)
+  const parts = selector.split(/\s+(?:>|~|\+)?\s*/);
+  const lastPart = parts[parts.length - 1] || selector;
+
+  // Extract class or id
+  const classMatch = lastPart.match(/\.[a-zA-Z][a-zA-Z0-9_-]*/);
+  if (classMatch) return classMatch[0];
+
+  const idMatch = lastPart.match(/#[a-zA-Z][a-zA-Z0-9_-]*/);
+  if (idMatch) return idMatch[0];
+
+  // Fall back to tag name or full selector
+  const tagMatch = lastPart.match(/^[a-zA-Z]+/);
+  return tagMatch ? tagMatch[0] : lastPart;
+}
+
+/**
+ * Group selectors by pattern to identify shared fixes
+ */
+function groupSelectorsByPattern(selectors: string[]): SelectorPattern[] {
+  const groups = new Map<string, string[]>();
+
+  for (const selector of selectors) {
+    const pattern = extractSelectorPattern(selector);
+    const existing = groups.get(pattern) || [];
+    existing.push(selector);
+    groups.set(pattern, existing);
+  }
+
+  // Sort by count descending (most common patterns first)
+  return Array.from(groups.entries())
+    .map(([pattern, selectorList]) => ({
+      pattern,
+      count: selectorList.length,
+      selectors: selectorList,
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/**
+ * Capture stratified violation screenshots
+ * - Screenshots: capped per type (saves storage)
+ * - Logging: ALL violations (nothing hidden)
+ * - Grouping: by selector pattern (shows cascading fixes)
  */
 async function captureViolationScreenshots(
   page: Page,
@@ -50,26 +104,31 @@ async function captureViolationScreenshots(
   const summaries: ViolationSummary[] = [];
 
   for (const violation of sorted) {
-    const examples = violation.nodes.slice(0, VIOLATION_CONFIG.maxPerType);
+    // Collect ALL selectors (no cap for logging)
+    const allSelectors = violation.nodes.map((n) => n.target[0] as string);
+    const selectorPatterns = groupSelectorsByPattern(allSelectors);
+
+    // Screenshot only first N (capped for storage)
+    const toScreenshot = violation.nodes.slice(
+      0,
+      VIOLATION_CONFIG.maxScreenshotsPerType
+    );
+
     const summary: ViolationSummary = {
       id: violation.id,
       impact: violation.impact as ImpactLevel,
       description: violation.help,
       total: violation.nodes.length,
-      examples: examples.map((n) => ({
-        selector: n.target[0] as string,
-        html: n.html,
-      })),
-      overflow: Math.max(
-        0,
-        violation.nodes.length - VIOLATION_CONFIG.maxPerType
-      ),
+      screenshotCount: toScreenshot.length,
+      selectorPatterns,
+      allSelectors,
     };
     summaries.push(summary);
 
-    // Capture screenshots for examples only
-    for (let i = 0; i < examples.length; i++) {
-      const node = examples[i];
+    // Capture screenshots (capped)
+    for (let i = 0; i < toScreenshot.length; i++) {
+      const node = toScreenshot[i];
+      if (!node) continue;
       const selector = node.target[0] as string;
       try {
         const element = page.locator(selector).first();
@@ -82,18 +141,19 @@ async function captureViolationScreenshots(
           });
         }
       } catch {
-        // Element may not be screenshottable (e.g., zero size)
-        console.warn(`Could not screenshot: ${selector}`);
+        console.warn(`  ⚠ Could not screenshot: ${selector}`);
       }
     }
   }
 
-  // Log stratified summary
-  console.log("\n📊 Violation Summary (by impact → type):");
-  console.log("─".repeat(60));
+  // Log comprehensive summary
+  console.log("\n" + "═".repeat(70));
+  console.log("📊 VIOLATION REPORT (by impact → type → selector pattern)");
+  console.log("═".repeat(70));
 
   let currentImpact: ImpactLevel | null = null;
   for (const s of summaries) {
+    // Impact header
     if (s.impact !== currentImpact) {
       currentImpact = s.impact;
       const icon =
@@ -105,13 +165,32 @@ async function captureViolationScreenshots(
               ? "🟡"
               : "🔵";
       console.log(`\n${icon} ${s.impact.toUpperCase()}`);
+      console.log("─".repeat(50));
     }
-    const overflowNote = s.overflow > 0 ? ` (+${s.overflow} more)` : "";
-    console.log(`   ${s.id}: ${s.total} issue(s)${overflowNote}`);
+
+    // Violation type
+    console.log(
+      `\n   📋 ${s.id} (${s.total} total, ${s.screenshotCount} screenshotted)`
+    );
     console.log(`      "${s.description}"`);
+
+    // Selector patterns (grouped - shows cascading fixes)
+    console.log(`\n      By selector pattern (fixes that cascade):`);
+    for (const pattern of s.selectorPatterns) {
+      const fixHint = pattern.count > 1 ? " ← 1 fix covers all" : "";
+      console.log(`        • ${pattern.pattern} (${pattern.count}×)${fixHint}`);
+    }
+
+    // Full selector list (always available, nothing hidden)
+    console.log(`\n      All affected selectors:`);
+    for (const selector of s.allSelectors) {
+      console.log(`        - ${selector}`);
+    }
   }
-  console.log("\n" + "─".repeat(60));
-  console.log(`Screenshots saved to: ${outputDir}`);
+
+  console.log("\n" + "═".repeat(70));
+  console.log(`📸 Screenshots saved to: ${outputDir}`);
+  console.log("═".repeat(70) + "\n");
 
   return summaries;
 }
