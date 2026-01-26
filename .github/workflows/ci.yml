@@ -63,6 +63,9 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -90,23 +93,27 @@ jobs:
       - name: Detect Tool Drift
         run: npx tsx scripts/detect-tool-drift.ts
 
-      # Semgrep - SAST scanner with paranoid config (711 rules)
+      # Semgrep - SAST scanner with paranoid config
       # Catches: XSS, injection, insecure crypto, hardcoded secrets, OWASP, CWE
+      - name: Install Semgrep
+        run: pip install semgrep
+
       - name: Semgrep Scan
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: >-
-            p/security-audit
-            p/secrets
-            p/owasp-top-ten
-            p/cwe-top-25
-            p/typescript
-            p/react
-            p/nextjs
-            p/jwt
-            p/xss
-            p/sql-injection
-          generateSarif: "1"
+        run: |
+          semgrep scan \
+            --config p/security-audit \
+            --config p/secrets \
+            --config p/owasp-top-ten \
+            --config p/cwe-top-25 \
+            --config p/typescript \
+            --config p/react \
+            --config p/nextjs \
+            --config p/jwt \
+            --config p/xss \
+            --config p/sql-injection \
+            --sarif --output semgrep.sarif \
+            --metrics=off \
+            src/ convex/
 
       - name: Upload Semgrep SARIF
         uses: github/codeql-action/upload-sarif@v3
