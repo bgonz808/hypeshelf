@@ -107,15 +107,15 @@ export default function AddRecommendation() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="bg-page min-h-screen">
         <Header />
         <main className="mx-auto max-w-2xl px-4 py-8">
           <div className="animate-pulse">
-            <div className="mb-8 h-8 w-48 rounded-sm bg-gray-200" />
+            <div className="bg-skeleton mb-8 h-8 w-48 rounded-sm" />
             <div className="space-y-4">
-              <div className="h-10 rounded-sm bg-gray-200" />
-              <div className="h-10 rounded-sm bg-gray-200" />
-              <div className="h-32 rounded-sm bg-gray-200" />
+              <div className="bg-skeleton h-10 rounded-sm" />
+              <div className="bg-skeleton h-10 rounded-sm" />
+              <div className="bg-skeleton h-32 rounded-sm" />
             </div>
           </div>
         </main>
@@ -125,14 +125,14 @@ export default function AddRecommendation() {
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="bg-page min-h-screen">
         <Header />
         <main className="mx-auto max-w-2xl px-4 py-8">
-          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-6 text-center">
-            <h2 className="mb-2 text-lg font-semibold text-yellow-800">
+          <div className="bg-warning border-warning rounded-lg border p-6 text-center">
+            <h2 className="text-warning mb-2 text-lg font-semibold">
               Sign in Required
             </h2>
-            <p className="text-yellow-700">
+            <p className="text-warning">
               You need to sign in to add a recommendation.
             </p>
           </div>
@@ -142,16 +142,16 @@ export default function AddRecommendation() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-page min-h-screen">
       <Header />
       <main className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="mb-8 text-2xl font-bold text-gray-900">
+        <h1 className="text-primary mb-8 text-2xl font-bold">
           Add a Recommendation
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+            <div className="bg-error border-error text-error rounded-lg border p-4">
               {error}
             </div>
           )}
@@ -159,9 +159,9 @@ export default function AddRecommendation() {
           <div>
             <label
               htmlFor="title"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="text-secondary mb-1 block text-sm font-medium"
             >
-              Title <span className="text-red-500">*</span>
+              Title <span className="text-error">*</span>
             </label>
             <input
               type="text"
@@ -169,10 +169,10 @@ export default function AddRecommendation() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
+              className="bg-input border-input ring-accent placeholder-muted focus:border-accent w-full rounded-lg border px-4 py-2 focus:ring-1 focus:outline-hidden"
               placeholder="What are you recommending?"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="text-muted mt-1 text-xs">
               {title.length}/200 characters
             </p>
           </div>
@@ -181,15 +181,15 @@ export default function AddRecommendation() {
             <div>
               <label
                 htmlFor="mediaType"
-                className="mb-1 block text-sm font-medium text-gray-700"
+                className="text-secondary mb-1 block text-sm font-medium"
               >
-                Media Type <span className="text-red-500">*</span>
+                Media Type <span className="text-error">*</span>
               </label>
               <select
                 id="mediaType"
                 value={mediaType}
                 onChange={(e) => setMediaType(e.target.value as MediaType)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
+                className="bg-input border-input ring-accent focus:border-accent w-full rounded-lg border px-4 py-2 focus:ring-1 focus:outline-hidden"
               >
                 {MEDIA_TYPES.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -202,7 +202,7 @@ export default function AddRecommendation() {
             <div>
               <label
                 htmlFor="genre"
-                className="mb-1 block text-sm font-medium text-gray-700"
+                className="text-secondary mb-1 block text-sm font-medium"
               >
                 Genre
               </label>
@@ -210,9 +210,11 @@ export default function AddRecommendation() {
                 id="genre"
                 value={genre}
                 onChange={(e) => setGenre(e.target.value as Genre | "")}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
+                className="bg-input border-input ring-accent focus:border-accent w-full rounded-lg border px-4 py-2 focus:ring-1 focus:outline-hidden"
               >
-                <option value="">Select a genre (optional)</option>
+                <option value="" className="text-muted">
+                  Select a genre (optional)
+                </option>
                 {GENRES.map((g) => (
                   <option key={g.value} value={g.value}>
                     {g.label}
@@ -225,19 +227,19 @@ export default function AddRecommendation() {
           <div>
             <label
               htmlFor="link"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="text-secondary mb-1 block text-sm font-medium"
             >
-              Link <span className="text-red-500">*</span>
+              Link <span className="text-error">*</span>
             </label>
             <input
               type="url"
               id="link"
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
+              className="bg-input border-input ring-accent placeholder-muted focus:border-accent w-full rounded-lg border px-4 py-2 focus:ring-1 focus:outline-hidden"
               placeholder="https://..."
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="text-muted mt-1 text-xs">
               Link to where people can find this
             </p>
           </div>
@@ -245,9 +247,9 @@ export default function AddRecommendation() {
           <div>
             <label
               htmlFor="blurb"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="text-secondary mb-1 block text-sm font-medium"
             >
-              Why do you recommend this? <span className="text-red-500">*</span>
+              Why do you recommend this? <span className="text-error">*</span>
             </label>
             <textarea
               id="blurb"
@@ -255,10 +257,10 @@ export default function AddRecommendation() {
               onChange={(e) => setBlurb(e.target.value)}
               maxLength={500}
               rows={4}
-              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
+              className="bg-input border-input ring-accent placeholder-muted focus:border-accent w-full resize-none rounded-lg border px-4 py-2 focus:ring-1 focus:outline-hidden"
               placeholder="Share why others should check this out..."
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="text-muted mt-1 text-xs">
               {blurb.length}/500 characters
             </p>
           </div>
@@ -267,14 +269,14 @@ export default function AddRecommendation() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+              className="bg-surface border-default text-secondary hover-bg-surface-secondary flex-1 rounded-lg border px-4 py-2"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="bg-accent text-on-accent hover-bg-accent flex-1 rounded-lg px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? "Adding..." : "Add Recommendation"}
             </button>

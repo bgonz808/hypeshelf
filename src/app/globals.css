@@ -3,6 +3,10 @@
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme {
+  /* ============================================
+     BRAND PALETTE (source of truth)
+     Don't use these directly - use semantic tokens below
+     ============================================ */
   --color-brand-50: #faf5ff;
   --color-brand-100: #f3e8ff;
   --color-brand-200: #e9d5ff;
@@ -15,11 +19,212 @@
   --color-brand-900: #581c87;
   --color-brand-950: #3b0764;
 
-  --color-dark-bg: #1a0a2e;
-  --color-dark-bg-secondary: #2d1b4e;
-  --color-dark-bg-tertiary: #3b0764;
+  /* ============================================
+     SEMANTIC DESIGN TOKENS
+     Use THESE in components, not raw colors
+     ============================================ */
+
+  /* --- Backgrounds --- */
+  --color-page: #f9fafb;              /* Main page background */
+  --color-surface: #ffffff;            /* Cards, inputs, elevated surfaces */
+  --color-surface-secondary: #f3f4f6;  /* Secondary surfaces, hover states */
+
+  /* --- Text --- */
+  --color-text-primary: #111827;       /* Headings, primary content */
+  --color-text-secondary: #4b5563;     /* Body text, labels */
+  --color-text-muted: #6b7280;         /* Placeholder, helper text (4.5:1 on white) */
+
+  /* --- Borders --- */
+  --color-border-default: #d1d5db;     /* Default borders */
+  --color-border-muted: #e5e7eb;       /* Subtle borders */
+  --color-border-input: #d1d5db;       /* Form input borders */
+
+  /* --- Accent (interactive elements) --- */
+  --color-accent: #9333ea;             /* Primary buttons, links (brand-600) */
+  --color-accent-hover: #7e22ce;       /* Hover state (brand-700) */
+  --color-accent-light: #f3e8ff;       /* Light accent bg (brand-100) */
+  --color-on-accent: #ffffff;          /* Text on accent backgrounds */
+
+  /* --- Feedback colors --- */
+  --color-error: #dc2626;              /* Error text/icons */
+  --color-error-light: #fef2f2;        /* Error background */
+  --color-error-border: #fecaca;       /* Error borders */
+
+  --color-warning: #d97706;            /* Warning text/icons */
+  --color-warning-light: #fffbeb;      /* Warning background */
+  --color-warning-border: #fde68a;     /* Warning borders */
+
+  --color-success: #16a34a;            /* Success text/icons */
+  --color-success-light: #f0fdf4;      /* Success background */
+  --color-success-border: #bbf7d0;     /* Success borders */
+
+  /* --- Input-specific --- */
+  --color-input-bg: #ffffff;
+  --color-input-placeholder: #6b7280;  /* Same as text-muted for consistency */
+
+  /* --- Ring/Focus --- */
+  --color-ring-accent: #a855f7;        /* Focus ring (brand-500) */
+
+  /* --- Info (blue - trust, calm, informational) --- */
+  --color-info: #2563eb;
+  --color-info-light: #eff6ff;
+  --color-info-border: #bfdbfe;
+
+  /* --- Highlight (gold - featured, special, premium) --- */
+  --color-highlight: #d97706;
+  --color-highlight-light: #fffbeb;
+  --color-highlight-border: #fde68a;
+
+  /* ============================================
+     CONTENT CATEGORY TOKENS
+     For media type badges - semantic by content nature
+     ============================================ */
+
+  /* Entertainment (movies, TV, games) - energetic, exciting */
+  --color-cat-entertainment-bg: #fce7f3;    /* Pink-ish */
+  --color-cat-entertainment-text: #9d174d;
+  --color-cat-entertainment-border: #fbcfe8;
+
+  /* Knowledge (books, podcasts, documentaries) - calm, trustworthy */
+  --color-cat-knowledge-bg: #dbeafe;        /* Blue-ish */
+  --color-cat-knowledge-text: #1e40af;
+  --color-cat-knowledge-border: #bfdbfe;
+
+  /* Creative (music, art) - expressive, inspiring */
+  --color-cat-creative-bg: #f3e8ff;         /* Purple - ties to brand */
+  --color-cat-creative-text: #6b21a8;
+  --color-cat-creative-border: #e9d5ff;
+
+  /* Neutral (other, uncategorized) - maps to surface */
+  --color-cat-neutral-bg: var(--color-surface-secondary);
+  --color-cat-neutral-text: var(--color-text-secondary);
+  --color-cat-neutral-border: var(--color-border-muted);
+
+  /* ============================================
+     COMPONENT TOKENS
+     High-level tokens for specific UI patterns
+     ============================================ */
+
+  /* Tags/Badges (maps to semantic or category) */
+  --color-tag-bg: var(--color-surface-secondary);
+  --color-tag-text: var(--color-text-secondary);
+  --color-tag-border: var(--color-border-muted);
+
+  /* Skeleton/Loading states */
+  --color-skeleton: #e5e7eb;
+  --color-skeleton-shine: #f3f4f6;
+
+  /* Overlay/Backdrop (modals, drawers) */
+  --color-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Disabled states */
+  --color-disabled-bg: #f3f4f6;
+  --color-disabled-text: #9ca3af;
+  --color-disabled-border: #e5e7eb;
 
   --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+/* ============================================
+   DARK MODE OVERRIDES
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  @theme {
+    /* --- Backgrounds --- */
+    --color-page: #1a0a2e;               /* Dark page bg */
+    --color-surface: #2d1b4e;            /* Dark cards/surfaces */
+    --color-surface-secondary: #3b0764;  /* Dark secondary surfaces */
+
+    /* --- Text --- */
+    --color-text-primary: #f9fafb;
+    --color-text-secondary: #d1d5db;
+    --color-text-muted: #9ca3af;         /* Lighter for dark bg contrast */
+
+    /* --- Borders --- */
+    --color-border-default: #4b5563;
+    --color-border-muted: #374151;
+    --color-border-input: #4b5563;
+
+    /* --- Accent (stays vibrant in dark) --- */
+    --color-accent: #a855f7;             /* Slightly lighter in dark (brand-500) */
+    --color-accent-hover: #c084fc;       /* Lighter on hover (brand-400) */
+    --color-accent-light: #3b0764;       /* Dark accent bg (brand-950) */
+
+    /* --- Feedback colors (adjusted for dark) --- */
+    --color-error: #f87171;
+    --color-error-light: #450a0a;
+    --color-error-border: #991b1b;
+
+    --color-warning: #fbbf24;
+    --color-warning-light: #451a03;
+    --color-warning-border: #92400e;
+
+    --color-success: #4ade80;
+    --color-success-light: #052e16;
+    --color-success-border: #166534;
+
+    /* --- Input-specific --- */
+    --color-input-bg: #2d1b4e;
+    --color-input-placeholder: #9ca3af;
+
+    /* --- Ring/Focus --- */
+    --color-ring-accent: #c084fc;        /* Lighter for dark mode visibility */
+
+    /* --- Info (adjusted for dark) --- */
+    --color-info: #60a5fa;
+    --color-info-light: #1e3a5f;
+    --color-info-border: #1e40af;
+
+    /* --- Highlight (adjusted for dark) --- */
+    --color-highlight: #fbbf24;
+    --color-highlight-light: #451a03;
+    --color-highlight-border: #92400e;
+
+    /* ============================================
+       CONTENT CATEGORY TOKENS (dark mode)
+       ============================================ */
+
+    /* Entertainment - darker, muted pink */
+    --color-cat-entertainment-bg: #4a1d34;
+    --color-cat-entertainment-text: #f9a8d4;
+    --color-cat-entertainment-border: #831843;
+
+    /* Knowledge - darker blue */
+    --color-cat-knowledge-bg: #1e3a5f;
+    --color-cat-knowledge-text: #93c5fd;
+    --color-cat-knowledge-border: #1e40af;
+
+    /* Creative - darker purple (brand-adjacent) */
+    --color-cat-creative-bg: #3b0764;
+    --color-cat-creative-text: #d8b4fe;
+    --color-cat-creative-border: #6b21a8;
+
+    /* Neutral - maps to dark surface */
+    --color-cat-neutral-bg: var(--color-surface-secondary);
+    --color-cat-neutral-text: var(--color-text-secondary);
+    --color-cat-neutral-border: var(--color-border-muted);
+
+    /* ============================================
+       COMPONENT TOKENS (dark mode)
+       ============================================ */
+
+    /* Tags/Badges */
+    --color-tag-bg: var(--color-surface-secondary);
+    --color-tag-text: var(--color-text-secondary);
+    --color-tag-border: var(--color-border-muted);
+
+    /* Skeleton/Loading */
+    --color-skeleton: #374151;
+    --color-skeleton-shine: #4b5563;
+
+    /* Overlay (slightly lighter for dark mode) */
+    --color-overlay: rgba(0, 0, 0, 0.7);
+
+    /* Disabled states */
+    --color-disabled-bg: #374151;
+    --color-disabled-text: #6b7280;
+    --color-disabled-border: #4b5563;
+  }
 }
 
 /*
@@ -38,6 +243,217 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
   }
+}
+
+/* ============================================
+   SEMANTIC UTILITY CLASSES
+   Map semantic tokens to Tailwind-style utilities
+   ============================================ */
+
+/* --- Background utilities --- */
+@utility bg-page {
+  background-color: var(--color-page);
+}
+@utility bg-surface {
+  background-color: var(--color-surface);
+}
+@utility bg-surface-secondary {
+  background-color: var(--color-surface-secondary);
+}
+@utility bg-input {
+  background-color: var(--color-input-bg);
+}
+@utility bg-accent {
+  background-color: var(--color-accent);
+}
+@utility bg-accent-hover {
+  background-color: var(--color-accent-hover);
+}
+@utility bg-accent-light {
+  background-color: var(--color-accent-light);
+}
+@utility bg-error {
+  background-color: var(--color-error-light);
+}
+@utility bg-warning {
+  background-color: var(--color-warning-light);
+}
+@utility bg-success {
+  background-color: var(--color-success-light);
+}
+
+/* --- Text utilities --- */
+@utility text-primary {
+  color: var(--color-text-primary);
+}
+@utility text-secondary {
+  color: var(--color-text-secondary);
+}
+@utility text-muted {
+  color: var(--color-text-muted);
+}
+@utility text-accent {
+  color: var(--color-accent);
+}
+@utility text-on-accent {
+  color: var(--color-on-accent);
+}
+@utility text-error {
+  color: var(--color-error);
+}
+@utility text-warning {
+  color: var(--color-warning);
+}
+@utility text-success {
+  color: var(--color-success);
+}
+
+/* --- Border utilities --- */
+@utility border-default {
+  border-color: var(--color-border-default);
+}
+@utility border-muted {
+  border-color: var(--color-border-muted);
+}
+@utility border-input {
+  border-color: var(--color-border-input);
+}
+@utility border-accent {
+  border-color: var(--color-accent);
+}
+@utility border-error {
+  border-color: var(--color-error-border);
+}
+@utility border-warning {
+  border-color: var(--color-warning-border);
+}
+@utility border-success {
+  border-color: var(--color-success-border);
+}
+
+/* --- Placeholder utility --- */
+@utility placeholder-muted {
+  &::placeholder {
+    color: var(--color-input-placeholder);
+  }
+}
+
+/* --- Ring/Focus utilities --- */
+@utility ring-accent {
+  --tw-ring-color: var(--color-ring-accent);
+}
+@utility outline-accent {
+  outline-color: var(--color-ring-accent);
+}
+
+/* --- Hover state utilities --- */
+@utility hover-bg-accent {
+  &:hover {
+    background-color: var(--color-accent-hover);
+  }
+}
+@utility hover-bg-surface-secondary {
+  &:hover {
+    background-color: var(--color-surface-secondary);
+  }
+}
+
+/* --- Info utilities --- */
+@utility bg-info {
+  background-color: var(--color-info-light);
+}
+@utility text-info {
+  color: var(--color-info);
+}
+@utility border-info {
+  border-color: var(--color-info-border);
+}
+
+/* --- Highlight utilities (staff picks, featured) --- */
+@utility bg-highlight {
+  background-color: var(--color-highlight-light);
+}
+@utility text-highlight {
+  color: var(--color-highlight);
+}
+@utility border-highlight {
+  border-color: var(--color-highlight-border);
+}
+
+/* --- Content category utilities --- */
+@utility bg-cat-entertainment {
+  background-color: var(--color-cat-entertainment-bg);
+}
+@utility text-cat-entertainment {
+  color: var(--color-cat-entertainment-text);
+}
+@utility border-cat-entertainment {
+  border-color: var(--color-cat-entertainment-border);
+}
+
+@utility bg-cat-knowledge {
+  background-color: var(--color-cat-knowledge-bg);
+}
+@utility text-cat-knowledge {
+  color: var(--color-cat-knowledge-text);
+}
+@utility border-cat-knowledge {
+  border-color: var(--color-cat-knowledge-border);
+}
+
+@utility bg-cat-creative {
+  background-color: var(--color-cat-creative-bg);
+}
+@utility text-cat-creative {
+  color: var(--color-cat-creative-text);
+}
+@utility border-cat-creative {
+  border-color: var(--color-cat-creative-border);
+}
+
+@utility bg-cat-neutral {
+  background-color: var(--color-cat-neutral-bg);
+}
+@utility text-cat-neutral {
+  color: var(--color-cat-neutral-text);
+}
+@utility border-cat-neutral {
+  border-color: var(--color-cat-neutral-border);
+}
+
+/* --- Tag/Badge utilities --- */
+@utility bg-tag {
+  background-color: var(--color-tag-bg);
+}
+@utility text-tag {
+  color: var(--color-tag-text);
+}
+@utility border-tag {
+  border-color: var(--color-tag-border);
+}
+
+/* --- Skeleton/Loading utilities --- */
+@utility bg-skeleton {
+  background-color: var(--color-skeleton);
+}
+@utility bg-skeleton-shine {
+  background-color: var(--color-skeleton-shine);
+}
+
+/* --- Overlay utility --- */
+@utility bg-overlay {
+  background-color: var(--color-overlay);
+}
+
+/* --- Disabled state utilities --- */
+@utility bg-disabled {
+  background-color: var(--color-disabled-bg);
+}
+@utility text-disabled {
+  color: var(--color-disabled-text);
+}
+@utility border-disabled {
+  border-color: var(--color-disabled-border);
 }
 
 @utility touch-target {

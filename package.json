@@ -29,6 +29,8 @@
     "prepare": "husky",
     "audit:deps": "npm audit --audit-level=high",
     "audit:secrets": "gitleaks detect --source . --verbose",
+    "audit:colors": "npx tsx scripts/audit-colors.ts",
+    "audit:colors:strict": "npx tsx scripts/audit-colors.ts --strict",
     "sbom": "npm sbom --sbom-format cyclonedx > sbom.json",
     "build:logos": "npx tsx scripts/build-logos.ts",
     "build:logos:watch": "npx tsx watch scripts/build-logos.ts",
