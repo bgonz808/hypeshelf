@@ -25,46 +25,46 @@
      ============================================ */
 
   /* --- Backgrounds --- */
-  --color-page: #f9fafb;              /* Main page background */
-  --color-surface: #ffffff;            /* Cards, inputs, elevated surfaces */
-  --color-surface-secondary: #f3f4f6;  /* Secondary surfaces, hover states */
+  --color-page: #f9fafb; /* Main page background */
+  --color-surface: #ffffff; /* Cards, inputs, elevated surfaces */
+  --color-surface-secondary: #f3f4f6; /* Secondary surfaces, hover states */
 
   /* --- Text --- */
-  --color-text-primary: #111827;       /* Headings, primary content */
-  --color-text-secondary: #4b5563;     /* Body text, labels */
-  --color-text-muted: #6b7280;         /* Placeholder, helper text (4.5:1 on white) */
+  --color-text-primary: #111827; /* Headings, primary content */
+  --color-text-secondary: #4b5563; /* Body text, labels */
+  --color-text-muted: #6b7280; /* Placeholder, helper text (4.5:1 on white) */
 
   /* --- Borders --- */
-  --color-border-default: #d1d5db;     /* Default borders */
-  --color-border-muted: #e5e7eb;       /* Subtle borders */
-  --color-border-input: #d1d5db;       /* Form input borders */
+  --color-border-default: #d1d5db; /* Default borders */
+  --color-border-muted: #e5e7eb; /* Subtle borders */
+  --color-border-input: #d1d5db; /* Form input borders */
 
   /* --- Accent (interactive elements) --- */
-  --color-accent: #7e22ce;             /* Primary buttons bg (brand-700 - 5.76:1 with white) */
-  --color-accent-hover: #6b21a8;       /* Hover state (brand-800) */
-  --color-accent-light: #f3e8ff;       /* Light accent bg (brand-100) */
-  --color-accent-foreground: #7e22ce;  /* Accent text on light bg (brand-700 - 5.76:1) */
-  --color-on-accent: #ffffff;          /* Text on accent backgrounds */
+  --color-accent: #7e22ce; /* Primary buttons bg (brand-700 - 5.76:1 with white) */
+  --color-accent-hover: #6b21a8; /* Hover state (brand-800) */
+  --color-accent-light: #f3e8ff; /* Light accent bg (brand-100) */
+  --color-accent-foreground: #7e22ce; /* Accent text on light bg (brand-700 - 5.76:1) */
+  --color-on-accent: #ffffff; /* Text on accent backgrounds */
 
   /* --- Feedback colors --- */
-  --color-error: #dc2626;              /* Error text/icons */
-  --color-error-light: #fef2f2;        /* Error background */
-  --color-error-border: #fecaca;       /* Error borders */
+  --color-error: #dc2626; /* Error text/icons */
+  --color-error-light: #fef2f2; /* Error background */
+  --color-error-border: #fecaca; /* Error borders */
 
-  --color-warning: #d97706;            /* Warning text/icons */
-  --color-warning-light: #fffbeb;      /* Warning background */
-  --color-warning-border: #fde68a;     /* Warning borders */
+  --color-warning: #d97706; /* Warning text/icons */
+  --color-warning-light: #fffbeb; /* Warning background */
+  --color-warning-border: #fde68a; /* Warning borders */
 
-  --color-success: #16a34a;            /* Success text/icons */
-  --color-success-light: #f0fdf4;      /* Success background */
-  --color-success-border: #bbf7d0;     /* Success borders */
+  --color-success: #16a34a; /* Success text/icons */
+  --color-success-light: #f0fdf4; /* Success background */
+  --color-success-border: #bbf7d0; /* Success borders */
 
   /* --- Input-specific --- */
   --color-input-bg: #ffffff;
-  --color-input-placeholder: #6b7280;  /* Same as text-muted for consistency */
+  --color-input-placeholder: #6b7280; /* Same as text-muted for consistency */
 
   /* --- Ring/Focus --- */
-  --color-ring-accent: #7e22ce;        /* Focus ring (brand-700 for visibility) */
+  --color-ring-accent: #7e22ce; /* Focus ring (brand-700 for visibility) */
 
   /* --- Info (blue - trust, calm, informational) --- */
   --color-info: #2563eb;
@@ -82,17 +82,17 @@
      ============================================ */
 
   /* Entertainment (movies, TV, games) - energetic, exciting */
-  --color-cat-entertainment-bg: #fce7f3;    /* Pink-ish */
+  --color-cat-entertainment-bg: #fce7f3; /* Pink-ish */
   --color-cat-entertainment-text: #9d174d;
   --color-cat-entertainment-border: #fbcfe8;
 
   /* Knowledge (books, podcasts, documentaries) - calm, trustworthy */
-  --color-cat-knowledge-bg: #dbeafe;        /* Blue-ish */
+  --color-cat-knowledge-bg: #dbeafe; /* Blue-ish */
   --color-cat-knowledge-text: #1e40af;
   --color-cat-knowledge-border: #bfdbfe;
 
   /* Creative (music, art) - expressive, inspiring */
-  --color-cat-creative-bg: #f3e8ff;         /* Purple - ties to brand */
+  --color-cat-creative-bg: #f3e8ff; /* Purple - ties to brand */
   --color-cat-creative-text: #6b21a8;
   --color-cat-creative-border: #e9d5ff;
 
@@ -134,14 +134,14 @@
 @media (prefers-color-scheme: dark) {
   :root {
     /* --- Backgrounds --- */
-    --color-page: #1a0a2e;               /* Dark page bg */
-    --color-surface: #2d1b4e;            /* Dark cards/surfaces */
-    --color-surface-secondary: #3b0764;  /* Dark secondary surfaces */
+    --color-page: #1a0a2e; /* Dark page bg */
+    --color-surface: #2d1b4e; /* Dark cards/surfaces */
+    --color-surface-secondary: #3b0764; /* Dark secondary surfaces */
 
     /* --- Text --- */
     --color-text-primary: #f9fafb;
     --color-text-secondary: #d1d5db;
-    --color-text-muted: #9ca3af;         /* Lighter for dark bg contrast */
+    --color-text-muted: #9ca3af; /* Lighter for dark bg contrast */
 
     /* --- Borders --- */
     --color-border-default: #4b5563;
@@ -149,10 +149,10 @@
     --color-border-input: #4b5563;
 
     /* --- Accent (must maintain contrast in dark) --- */
-    --color-accent: #9333ea;             /* Button bg (brand-600 - 4.52:1 with white) */
-    --color-accent-hover: #a855f7;       /* Hover state (brand-500) */
-    --color-accent-light: #3b0764;       /* Dark accent bg (brand-950) */
-    --color-accent-foreground: #c084fc;  /* Accent text on dark bg (brand-400 - 6.5:1 on #2d1b4e) */
+    --color-accent: #9333ea; /* Button bg (brand-600 - 4.52:1 with white) */
+    --color-accent-hover: #a855f7; /* Hover state (brand-500) */
+    --color-accent-light: #3b0764; /* Dark accent bg (brand-950) */
+    --color-accent-foreground: #c084fc; /* Accent text on dark bg (brand-400 - 6.5:1 on #2d1b4e) */
 
     /* --- Feedback colors (adjusted for dark) --- */
     --color-error: #f87171;
@@ -172,7 +172,7 @@
     --color-input-placeholder: #9ca3af;
 
     /* --- Ring/Focus --- */
-    --color-ring-accent: #c084fc;        /* Lighter for dark mode visibility */
+    --color-ring-accent: #c084fc; /* Lighter for dark mode visibility */
 
     /* --- Info (adjusted for dark) --- */
     --color-info: #60a5fa;
@@ -552,7 +552,11 @@
 
   /* Tap highlight color for touch devices - uses accent color with transparency */
   * {
-    -webkit-tap-highlight-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    -webkit-tap-highlight-color: color-mix(
+      in srgb,
+      var(--color-accent) 20%,
+      transparent
+    );
   }
 
   /* ============================================
