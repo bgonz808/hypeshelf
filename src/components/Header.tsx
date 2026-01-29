@@ -1,11 +1,14 @@
 "use client";
 
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 
 export function Header() {
   const { isSignedIn, isLoaded } = useUser();
+  const tAuth = useTranslations("auth");
+  const tRec = useTranslations("recommendations");
 
   return (
     <header className="bg-surface/80 border-muted sticky top-0 z-50 border-b backdrop-blur-xs">
@@ -36,7 +39,7 @@ export function Header() {
                 href="/add"
                 className="bg-accent text-on-accent hover-bg-accent rounded-full px-4 py-2 text-sm font-medium transition-colors"
               >
-                Add Rec
+                {tRec("addShort")}
               </Link>
               <UserButton
                 afterSignOutUrl="/"
@@ -51,12 +54,12 @@ export function Header() {
             <>
               <SignInButton mode="modal">
                 <button className="bg-surface text-accent text-sm font-medium">
-                  Sign In
+                  {tAuth("signIn")}
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
                 <button className="bg-accent text-on-accent hover-bg-accent rounded-full px-4 py-2 text-sm font-medium transition-colors">
-                  Sign Up
+                  {tAuth("signUp")}
                 </button>
               </SignUpButton>
             </>

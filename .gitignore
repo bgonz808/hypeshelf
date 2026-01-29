@@ -51,6 +51,9 @@ coverage/
 *.tsbuildinfo
 next-env.d.ts
 
+# next-intl generated type declarations
+*.d.json.ts
+
 # IDE - commit examples, ignore actuals
 .vscode/*
 !.vscode/settings.json.example

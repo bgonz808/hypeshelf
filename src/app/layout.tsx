@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import "./globals.css";
 
@@ -37,17 +39,21 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Note: dir attribute will be set dynamically by next-intl based on locale
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <ClerkProvider dynamic>
-      <html lang="en" className={inter.variable}>
+      <html lang={locale} className={inter.variable}>
         <body className="bg-page text-primary forced-colors:bg-Canvas forced-colors:text-CanvasText min-h-screen font-sans antialiased contrast-more:bg-white contrast-more:text-black">
-          <ConvexClientProvider>{children}</ConvexClientProvider>
+          <NextIntlClientProvider messages={messages}>
+            <ConvexClientProvider>{children}</ConvexClientProvider>
+          </NextIntlClientProvider>
         </body>
       </html>
     </ClerkProvider>
