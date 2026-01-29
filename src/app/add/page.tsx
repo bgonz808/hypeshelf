@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "../../../convex/_generated/api";
 import { Header } from "@/components";
+import { MediaAutocomplete } from "@/components/MediaAutocomplete";
+import { GenreCombobox } from "@/components/GenreCombobox";
+import type { MediaType as MediaTypeEnum } from "@/lib/media-search";
+import type { MediaSearchResult } from "@/lib/media-search";
 
 const MEDIA_TYPES = [
   { value: "movie", label: "Movie" },
@@ -13,33 +17,12 @@ const MEDIA_TYPES = [
   { value: "book", label: "Book" },
   { value: "music", label: "Music" },
   { value: "podcast", label: "Podcast" },
-  { value: "game", label: "Game" },
-  { value: "other", label: "Other" },
-] as const;
-
-const GENRES = [
-  { value: "drama", label: "Drama" },
-  { value: "comedy", label: "Comedy" },
-  { value: "romance", label: "Romance" },
-  { value: "thriller", label: "Thriller" },
-  { value: "horror", label: "Horror" },
-  { value: "action", label: "Action" },
-  { value: "adventure", label: "Adventure" },
-  { value: "sci-fi", label: "Sci-Fi" },
-  { value: "fantasy", label: "Fantasy" },
-  { value: "mystery", label: "Mystery" },
-  { value: "documentary", label: "Documentary" },
-  { value: "biography", label: "Biography" },
-  { value: "history", label: "History" },
-  { value: "true-crime", label: "True Crime" },
-  { value: "animation", label: "Animation" },
-  { value: "kids", label: "Kids" },
-  { value: "indie", label: "Indie" },
+  { value: "game", label: "Video Game" },
+  { value: "board-game", label: "Board Game" },
   { value: "other", label: "Other" },
 ] as const;
 
 type MediaType = (typeof MEDIA_TYPES)[number]["value"];
-type Genre = (typeof GENRES)[number]["value"];
 
 export default function AddRecommendation() {
   const router = useRouter();
@@ -48,11 +31,23 @@ export default function AddRecommendation() {
 
   const [title, setTitle] = useState("");
   const [mediaType, setMediaType] = useState<MediaType>("movie");
-  const [genre, setGenre] = useState<Genre | "">("");
+  const [genre, setGenre] = useState("");
   const [link, setLink] = useState("");
   const [blurb, setBlurb] = useState("");
+  const [coverUrl, setCoverUrl] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleSelectResult = useCallback((result: MediaSearchResult) => {
+    setCoverUrl(result.coverUrl);
+  }, []);
+
+  const handleMediaTypeChange = (newType: MediaType) => {
+    setMediaType(newType);
+    // Clear cover and genre when switching types since they won't match
+    setCoverUrl(undefined);
+    setGenre("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +87,7 @@ export default function AddRecommendation() {
         title: title.trim(),
         mediaType,
         genre: genre || undefined,
+        coverUrl,
         link: link.trim(),
         blurb: blurb.trim(),
       });
@@ -156,27 +152,6 @@ export default function AddRecommendation() {
             </div>
           )}
 
-          <div>
-            <label
-              htmlFor="title"
-              className="text-secondary mb-1 block text-sm font-medium"
-            >
-              Title <span className="text-error">*</span>
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={200}
-              className="bg-input border-input ring-accent placeholder-muted focus:border-accent w-full rounded-lg border px-4 py-2 focus:ring-1 focus:outline-hidden"
-              placeholder="What are you recommending?"
-            />
-            <p className="text-muted mt-1 text-xs">
-              {title.length}/200 characters
-            </p>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label
@@ -188,7 +163,9 @@ export default function AddRecommendation() {
               <select
                 id="mediaType"
                 value={mediaType}
-                onChange={(e) => setMediaType(e.target.value as MediaType)}
+                onChange={(e) =>
+                  handleMediaTypeChange(e.target.value as MediaType)
+                }
                 className="bg-input border-input ring-accent focus:border-accent w-full rounded-lg border px-4 py-2 focus:ring-1 focus:outline-hidden"
               >
                 {MEDIA_TYPES.map((type) => (
@@ -206,23 +183,52 @@ export default function AddRecommendation() {
               >
                 Genre
               </label>
-              <select
-                id="genre"
+              <GenreCombobox
+                mediaType={mediaType}
                 value={genre}
-                onChange={(e) => setGenre(e.target.value as Genre | "")}
-                className="bg-input border-input ring-accent focus:border-accent w-full rounded-lg border px-4 py-2 focus:ring-1 focus:outline-hidden"
-              >
-                <option value="" className="text-muted">
-                  Select a genre (optional)
-                </option>
-                {GENRES.map((g) => (
-                  <option key={g.value} value={g.value}>
-                    {g.label}
-                  </option>
-                ))}
-              </select>
+                onChange={setGenre}
+              />
             </div>
           </div>
+
+          <div>
+            <label
+              htmlFor="title"
+              className="text-secondary mb-1 block text-sm font-medium"
+            >
+              Title <span className="text-error">*</span>
+            </label>
+            <MediaAutocomplete
+              mediaType={mediaType as MediaTypeEnum}
+              value={title}
+              onChange={setTitle}
+              onSelect={handleSelectResult}
+            />
+            <p className="text-muted mt-1 text-xs">
+              {title.length}/200 characters
+            </p>
+          </div>
+
+          {coverUrl && (
+            <div className="flex items-start gap-4">
+              <img
+                src={coverUrl}
+                alt={`Cover for ${title}`}
+                className="h-24 w-16 rounded object-cover shadow"
+                onError={() => setCoverUrl(undefined)}
+              />
+              <div className="flex flex-col gap-1">
+                <p className="text-muted text-xs">Cover preview</p>
+                <button
+                  type="button"
+                  onClick={() => setCoverUrl(undefined)}
+                  className="text-error text-xs underline"
+                >
+                  Remove cover
+                </button>
+              </div>
+            </div>
+          )}
 
           <div>
             <label

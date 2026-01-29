@@ -12,32 +12,15 @@ type MediaType =
   | "music"
   | "podcast"
   | "game"
-  | "other";
-type Genre =
-  | "drama"
-  | "comedy"
-  | "romance"
-  | "thriller"
-  | "horror"
-  | "action"
-  | "adventure"
-  | "sci-fi"
-  | "fantasy"
-  | "mystery"
-  | "documentary"
-  | "biography"
-  | "history"
-  | "true-crime"
-  | "animation"
-  | "kids"
-  | "indie"
+  | "board-game"
   | "other";
 
 interface Recommendation {
   _id: Id<"recommendations">;
   title: string;
   mediaType: MediaType;
-  genre?: Genre;
+  genre?: string;
+  coverUrl?: string;
   link: string;
   blurb: string;
   userName: string; // "????" for unauthenticated users
@@ -69,8 +52,13 @@ const MEDIA_TYPE_CONFIG: Record<
     color: "bg-cat-entertainment text-cat-entertainment",
   },
   game: {
-    label: "Game",
+    label: "Video Game",
     emoji: "🎮",
+    color: "bg-cat-entertainment text-cat-entertainment",
+  },
+  "board-game": {
+    label: "Board Game",
+    emoji: "🎲",
     color: "bg-cat-entertainment text-cat-entertainment",
   },
   // Knowledge: calm, trustworthy content
@@ -98,26 +86,13 @@ const MEDIA_TYPE_CONFIG: Record<
   },
 };
 
-const GENRE_CONFIG: Record<Genre, { label: string }> = {
-  drama: { label: "Drama" },
-  comedy: { label: "Comedy" },
-  romance: { label: "Romance" },
-  thriller: { label: "Thriller" },
-  horror: { label: "Horror" },
-  action: { label: "Action" },
-  adventure: { label: "Adventure" },
-  "sci-fi": { label: "Sci-Fi" },
-  fantasy: { label: "Fantasy" },
-  mystery: { label: "Mystery" },
-  documentary: { label: "Documentary" },
-  biography: { label: "Biography" },
-  history: { label: "History" },
-  "true-crime": { label: "True Crime" },
-  animation: { label: "Animation" },
-  kids: { label: "Kids" },
-  indie: { label: "Indie" },
-  other: { label: "Other" },
-};
+/** Capitalize a genre slug for display (e.g. "sci-fi" → "Sci-Fi", "rock" → "Rock") */
+function formatGenreLabel(slug: string): string {
+  return slug
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join("-");
+}
 
 function formatTimeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
@@ -139,8 +114,8 @@ export function RecommendationCard({
   });
 
   const mediaType = MEDIA_TYPE_CONFIG[recommendation.mediaType];
-  const genre = recommendation.genre
-    ? GENRE_CONFIG[recommendation.genre]
+  const genreLabel = recommendation.genre
+    ? formatGenreLabel(recommendation.genre)
     : null;
 
   const handleLike = useCallback(async () => {
@@ -163,9 +138,9 @@ export function RecommendationCard({
             <span aria-hidden="true">{mediaType.emoji}</span>
             {mediaType.label}
           </span>
-          {genre && (
+          {genreLabel && (
             <span className="bg-accent-light text-accent inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
-              {genre.label}
+              {genreLabel}
             </span>
           )}
           {showStaffBadge && recommendation.isStaffPick && (

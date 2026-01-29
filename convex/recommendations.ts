@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { mediaTypes, genres } from "./schema";
+import { mediaTypes } from "./schema";
 import type { Doc } from "./_generated/dataModel";
 import { redactRecommendationForPublic } from "./lib/redaction";
 
@@ -14,7 +14,7 @@ import { redactRecommendationForPublic } from "./lib/redaction";
 export const list = query({
   args: {
     mediaType: v.optional(mediaTypes),
-    genre: v.optional(genres),
+    genre: v.optional(v.string()),
     limit: v.optional(v.number()),
     staffPicksOnly: v.optional(v.boolean()),
   },
@@ -173,7 +173,8 @@ export const create = mutation({
   args: {
     title: v.string(),
     mediaType: mediaTypes,
-    genre: v.optional(genres),
+    genre: v.optional(v.string()),
+    coverUrl: v.optional(v.string()),
     link: v.string(),
     blurb: v.string(),
   },
@@ -200,12 +201,30 @@ export const create = mutation({
       throw new Error("Title must be 200 characters or less");
     }
 
+    // Validate genre length
+    if (args.genre && args.genre.trim().length > 50) {
+      throw new Error("Genre must be 50 characters or less");
+    }
+
+    // Validate cover URL if provided
+    if (args.coverUrl) {
+      try {
+        const coverParsed = new URL(args.coverUrl);
+        if (!["http:", "https:"].includes(coverParsed.protocol)) {
+          throw new Error("Cover URL must use HTTP or HTTPS");
+        }
+      } catch {
+        throw new Error("Invalid cover URL format");
+      }
+    }
+
     const now = Date.now();
 
     const id = await ctx.db.insert("recommendations", {
       title: args.title.trim(),
       mediaType: args.mediaType,
-      genre: args.genre,
+      genre: args.genre ? args.genre.trim().toLowerCase() : undefined,
+      coverUrl: args.coverUrl,
       link: args.link.trim(),
       blurb: args.blurb.trim(),
       userId: identity.subject,

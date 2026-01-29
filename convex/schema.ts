@@ -12,35 +12,7 @@ export const mediaTypes = v.union(
   v.literal("music"),
   v.literal("podcast"),
   v.literal("game"),
-  v.literal("other")
-);
-
-/**
- * Genre enum for recommendations
- * The content genre/category (optional, varies by media type)
- */
-export const genres = v.union(
-  // Drama/Narrative
-  v.literal("drama"),
-  v.literal("comedy"),
-  v.literal("romance"),
-  v.literal("thriller"),
-  v.literal("horror"),
-  v.literal("action"),
-  v.literal("adventure"),
-  // Speculative
-  v.literal("sci-fi"),
-  v.literal("fantasy"),
-  v.literal("mystery"),
-  // Non-fiction
-  v.literal("documentary"),
-  v.literal("biography"),
-  v.literal("history"),
-  v.literal("true-crime"),
-  // Other
-  v.literal("animation"),
-  v.literal("kids"),
-  v.literal("indie"),
+  v.literal("board-game"),
   v.literal("other")
 );
 
@@ -53,7 +25,8 @@ export default defineSchema({
     // Content fields
     title: v.string(),
     mediaType: mediaTypes,
-    genre: v.optional(genres), // Optional content genre (horror, comedy, etc.)
+    genre: v.optional(v.string()), // Free-form genre slug or custom text
+    coverUrl: v.optional(v.string()), // Cover art/poster URL from provider
     link: v.string(), // URL to the content
     blurb: v.string(), // User's recommendation text
 
@@ -99,4 +72,16 @@ export default defineSchema({
     .index("by_recommendation", ["recommendationId"])
     // For "hot" queries (recent likes)
     .index("by_creation", ["createdAt"]),
+
+  /**
+   * Provider configurations table
+   * Stores admin-managed settings for media search providers
+   */
+  providerConfigs: defineTable({
+    providerId: v.string(),
+    enabled: v.boolean(),
+    encryptedKey: v.optional(v.string()), // AES-256-GCM encrypted API key
+    updatedAt: v.number(),
+    updatedBy: v.string(), // Clerk user ID of admin who updated
+  }).index("by_provider", ["providerId"]),
 });
