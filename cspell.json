@@ -1,0 +1,64 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "hypeshelf",
+    "convex",
+    "nextjs",
+    "intl",
+    "blurb",
+    "signup",
+    "signin",
+    "signout",
+    "clsx",
+    "commitlint",
+    "gitleaks",
+    "tailwindcss",
+    "postcss",
+    "nosniff",
+    "OWASP",
+    "SAST",
+    "DAST",
+    "semgrep",
+    "vitest",
+    "jsdom",
+    "axe",
+    "sbom",
+    "husky",
+    "platformer",
+    "tmdb",
+    "openlibrary",
+    "musicbrainz",
+    "rawg",
+    "unconfigured",
+    "combobox",
+    "autocomplete",
+    "ciphertext",
+    "boardgame",
+    "boardgamegeek",
+    "yearpublished",
+    "Catan"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    ".next",
+    "package-lock.json",
+    "convex/_generated",
+    "*.d.json.ts"
+  ],
+  "overrides": [
+    {
+      "filename": "messages/en.json",
+      "language": "en"
+    },
+    {
+      "filename": "messages/es.json",
+      "language": "es,en"
+    },
+    {
+      "filename": "messages/{zh,ar,yi,es}.json",
+      "enabled": false
+    }
+  ]
+}

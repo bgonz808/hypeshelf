@@ -8,13 +8,14 @@
  * 3. Empty values in en.json (needs-translation markers)
  * 4. Stale keys in non-en locales (keys not in en.json)
  * 5. Waiver-aware reporting (reads i18n-waivers.json)
+ * 6. Language detection — flags en.json values that don't appear English (Phase 3)
  *
  * Exit codes:
  *   0 = pass (warnings are OK)
  *   1 = hard failures (missing en keys, malformed JSON)
  *
  * Run: npx tsx scripts/i18n-check.ts
- * See: ADR-004 §8 (Gating Strategy)
+ * See: ADR-004 §8 (Gating Strategy), §9 (Language Detection)
  */
 
 import * as fs from "fs";
@@ -105,11 +106,64 @@ function isWaived(
   return null;
 }
 
+// ── Language Detection ──────────────────────────────────────────────
+
+/**
+ * ISO 639-3 codes franc uses → our locale codes.
+ * franc returns 3-letter ISO 639-3 codes (e.g. "eng", "por", "spa").
+ */
+const ISO639_3_TO_LOCALE = new Map<string, string>([
+  ["eng", "en"],
+  ["spa", "es"],
+  ["por", "pt"],
+  ["fra", "fr"],
+  ["deu", "de"],
+  ["ita", "it"],
+  ["nld", "nl"],
+  ["rus", "ru"],
+  ["zho", "zh"],
+  ["jpn", "ja"],
+  ["kor", "ko"],
+  ["ara", "ar"],
+  ["hin", "hi"],
+  ["yid", "yi"],
+  ["cat", "ca"],
+  ["ron", "ro"],
+  ["pol", "pl"],
+  ["tur", "tr"],
+]);
+
+/**
+ * Detect the language of a string using franc.
+ * Returns the 2-letter locale code or "und" (undetermined).
+ * Short strings (<20 chars) are unreliable — returns "und".
+ */
+async function detectLanguage(
+  text: string,
+  francFn: (text: string) => string
+): Promise<string> {
+  if (text.length < 20) return "und";
+
+  const iso3 = francFn(text);
+  if (iso3 === "und") return "und";
+
+  return ISO639_3_TO_LOCALE.get(iso3) ?? iso3;
+}
+
 // ── Main ───────────────────────────────────────────────────────────
 
-function main(): void {
+async function main(): Promise<void> {
   let errors = 0;
   let warnings = 0;
+
+  // Dynamic import for ESM-only franc
+  let francFn: ((text: string) => string) | null = null;
+  try {
+    const francModule = await import("franc");
+    francFn = francModule.franc;
+  } catch {
+    console.log("  ⚠ franc not installed — language detection disabled\n");
+  }
 
   console.log("🌐 i18n Coverage Check\n");
 
@@ -175,6 +229,35 @@ function main(): void {
       warnings++;
     }
     console.log();
+  }
+
+  // Language detection: flag en.json values that don't appear English (Phase 3)
+  if (francFn) {
+    const nonEnglishSuspects: {
+      key: string;
+      value: string;
+      detected: string;
+    }[] = [];
+    for (const key of baseKeys) {
+      const value = getNestedValue(baseMessages, key);
+      if (typeof value !== "string" || value.trim() === "") continue;
+      const detected = await detectLanguage(value, francFn);
+      if (detected !== "und" && detected !== "en") {
+        nonEnglishSuspects.push({ key, value, detected });
+      }
+    }
+    if (nonEnglishSuspects.length > 0) {
+      console.log(
+        `  ⚠ ${String(nonEnglishSuspects.length)} value(s) in ${BASE_LOCALE}.json may not be English:`
+      );
+      for (const { key, value, detected } of nonEnglishSuspects) {
+        const truncated =
+          value.length > 40 ? value.slice(0, 40) + "..." : value;
+        console.log(`    - ${key}: "${truncated}" (detected: ${detected})`);
+        warnings++;
+      }
+      console.log();
+    }
   }
 
   // Coverage matrix header
@@ -296,4 +379,7 @@ function main(): void {
   process.exit(errors > 0 ? 1 : 0);
 }
 
-main();
+main().catch((err) => {
+  console.error("Fatal error:", err);
+  process.exit(1);
+});
