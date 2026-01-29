@@ -388,3 +388,37 @@ When user-facing language switching is needed:
 - [franc — natural language detection](https://github.com/wooorm/franc)
 - [cspell — spell checker with multi-language support](https://cspell.org/)
 - [i18n Ally — VS Code extension](https://marketplace.visualstudio.com/items?itemName=Lokalise.i18n-ally)
+
+---
+
+## Implementation Log
+
+Commits implementing this ADR, recorded as completed:
+
+### Phase 1: Infrastructure
+
+**Commit**: `bae6958` — `feat(i18n): wire up next-intl infrastructure (ADR-004 Phase 1)`
+
+- Created `src/i18n/request.ts` — next-intl request config (hardcoded `en`, routing deferred)
+- Converted `next.config.js` → `next.config.mjs` with `createNextIntlPlugin`
+- Created `global.d.ts` — `IntlMessages` type declaration for compile-time key safety
+- Updated `src/app/layout.tsx` — `NextIntlClientProvider`, dynamic `lang` attribute via `getLocale()`
+- Converted `src/components/Header.tsx` — first component using `useTranslations()` (`auth` + `recommendations` namespaces)
+- Added `*.d.json.ts` to `.gitignore`
+
+### Phase 2: Enforcement
+
+**Commit**: (this commit) — `feat(i18n): add enforcement tooling (ADR-004 Phase 2)`
+
+- Installed `eslint-plugin-i18next@6.1.3` — `no-literal-string` rule at `warn` for `src/components/**` and `src/app/**`
+- Created `scripts/i18n-check.ts` — validates key completeness, empty values, stale keys, coverage matrix, waiver-aware
+- Created `i18n-status.json` — provenance tracking sidecar (schema defined, initially empty)
+- Created `i18n-waivers.json` — 2 initial waivers (admin UI en-only, non-en locales pending review)
+- Added `i18n:check` npm script
+- Added `i18n:check` CI job in `.github/workflows/ci.yml`
+- Added `i18n:check` to `.husky/pre-push` hook
+
+### Related Commits (same session)
+
+- `92505c3` — `feat(schema): replace genre enum with free-form string + curated suggestions` — expanded i18n genre keys across all 5 locales (music, game, board-game genres)
+- `a088f3a` — `docs(adr): add ADR-004 internationalization strategy` — this document

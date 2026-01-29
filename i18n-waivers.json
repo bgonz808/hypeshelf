@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "description": "Acknowledged i18n coverage gaps. CI suppresses warnings for these. See ADR-004 §8."
+  },
+  "waivers": [
+    {
+      "keys": ["admin.*"],
+      "locales": ["ar", "yi"],
+      "reason": "Admin UI is English-only for MVP — low user-facing priority",
+      "milestone": "post-launch",
+      "author": "bgonz808",
+      "date": "2026-01-29"
+    },
+    {
+      "keys": ["*"],
+      "locales": ["es", "zh", "ar", "yi"],
+      "reason": "All non-en locales are machine-translated scaffolding, pending human review",
+      "milestone": "post-mvp-translation-pass",
+      "author": "bgonz808",
+      "date": "2026-01-29"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import nextConfig from "eslint-config-next";
 import security from "eslint-plugin-security";
+import i18next from "eslint-plugin-i18next";
 
 /** @type {import('eslint').Linter.Config[]} */
 const config = [
@@ -44,6 +45,17 @@ const config = [
       "react/no-danger": "error",
       // Prevent javascript: URLs
       "no-script-url": "error",
+    },
+  },
+
+  // i18n: Flag hardcoded strings in UI code (ADR-004 Phase 2)
+  // Warn only — developers see violations but commits aren't blocked.
+  // Escalates to error in Phase 3+ after component migration.
+  {
+    files: ["src/components/**/*.{ts,tsx}", "src/app/**/*.{ts,tsx}"],
+    plugins: { i18next },
+    rules: {
+      "i18next/no-literal-string": "warn",
     },
   },
 

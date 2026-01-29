@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "description": "Translation provenance tracking. See ADR-004 §7.",
+    "schema": {
+      "method": "authored | machine | reviewed",
+      "engine": "deepl | gpt-4 | google (machine only)",
+      "source": "locale translated from (machine only)",
+      "reviews": "[{ reviewer, date, verdict: approved | revised }]"
+    }
+  }
+}

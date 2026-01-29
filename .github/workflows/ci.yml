@@ -127,6 +127,25 @@ jobs:
           sarif_file: semgrep.sarif
         continue-on-error: true
 
+  i18n:
+    name: i18n Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check i18n coverage
+        run: npm run i18n:check
+
   build:
     name: Build
     runs-on: ubuntu-latest
