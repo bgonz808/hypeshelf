@@ -1,15 +1,20 @@
 /**
  * Atomic JSON operations for i18n message files and provenance tracking.
  *
- * Loads all messages/*.json + i18n-status.json into memory, provides
- * dot-path setters, and flushes with sorted keys for minimal diffs.
+ * Message files (messages/*.json): loaded into memory, written atomically
+ * via temp-file + rename. Sorted keys for minimal git diffs.
+ *
+ * Provenance (i18n-status.jsonl): append-only JSONL. Each line is a
+ * self-contained JSON record. On read, last-write-wins for duplicate
+ * (key, locale) pairs. On write, new records are appended — a crash
+ * can only lose the incomplete last line, never corrupt prior records.
  *
  * Integrity features:
- *   - Content hash (SHA-256 prefix) stored in each provenance entry.
+ *   - Content hash (SHA-256 prefix) stored in each provenance record.
  *     Detects when a translation value changed without provenance update.
- *   - Atomic flush: write to .tmp sibling, then rename. On Windows,
- *     rename is best-effort (not truly atomic across volumes), but git
- *     provides the safety net for tracked files.
+ *   - Atomic flush for message JSON: write to .tmp sibling, then rename.
+ *     On Windows, rename is best-effort; git is the safety net.
+ *   - Append-only for provenance JSONL: inherently crash-safe.
  *
  * See ADR-004 §7 (Provenance Tracking)
  */
@@ -27,6 +32,12 @@ export interface ProvenanceEntry {
   source?: string;
   date: string;
   contentHash?: string;
+}
+
+/** On-disk JSONL record: provenance entry + routing fields */
+export interface ProvenanceRecord extends ProvenanceEntry {
+  key: string;
+  locale: string;
 }
 
 type NestedRecord = { [key: string]: string | NestedRecord };
@@ -107,24 +118,79 @@ function atomicWriteFileSync(filePath: string, content: string): void {
   }
 }
 
+// ── JSONL Provenance Store ─────────────────────────────────────────
+
+const STATUS_FILE = path.resolve(__dirname, "..", "..", "i18n-status.jsonl");
+
+/**
+ * Read all provenance records from JSONL. Last-write-wins for
+ * duplicate (key, locale) pairs, which is how append-only updates work.
+ */
+export function loadProvenance(): Map<string, Map<string, ProvenanceEntry>> {
+  const result = new Map<string, Map<string, ProvenanceEntry>>();
+
+  let raw: string;
+  try {
+    raw = fs.readFileSync(STATUS_FILE, "utf-8");
+  } catch {
+    return result;
+  }
+
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue; // skip blank/comment
+
+    let record: ProvenanceRecord;
+    try {
+      record = JSON.parse(trimmed) as ProvenanceRecord;
+    } catch {
+      continue; // skip malformed lines (crash residue)
+    }
+
+    if (!record.key || !record.locale) continue;
+
+    let keyMap = result.get(record.key);
+    if (!keyMap) {
+      keyMap = new Map();
+      result.set(record.key, keyMap);
+    }
+
+    // Strip routing fields before storing as entry
+    const { key: _k, locale: _l, ...entry } = record;
+    keyMap.set(record.locale, entry);
+  }
+
+  return result;
+}
+
+/**
+ * Append provenance records to the JSONL file.
+ * Each record is one complete JSON line — append-only, crash-safe.
+ */
+function appendProvenance(records: ProvenanceRecord[]): void {
+  if (records.length === 0) return;
+  const lines = records.map((r) => JSON.stringify(r)).join("\n") + "\n";
+  fs.appendFileSync(STATUS_FILE, lines);
+}
+
 // ── Message File Manager ───────────────────────────────────────────
 
 const MESSAGES_DIR = path.resolve(__dirname, "..", "..", "messages");
-const STATUS_FILE = path.resolve(__dirname, "..", "..", "i18n-status.json");
 
 const LOCALES = ["en", "es", "zh", "ar", "yi"];
 
 export class MessageFileManager {
   private messages: Map<string, NestedRecord> = new Map();
-  private status: Record<string, Record<string, ProvenanceEntry>> = {};
+  private provenance: Map<string, Map<string, ProvenanceEntry>>;
   private modified: Set<string> = new Set();
-  private statusModified = false;
+  private pendingProvenance: ProvenanceRecord[] = [];
 
   constructor() {
-    this.load();
+    this.provenance = loadProvenance();
+    this.loadMessages();
   }
 
-  private load(): void {
+  private loadMessages(): void {
     for (const locale of LOCALES) {
       const filePath = path.join(MESSAGES_DIR, `${locale}.json`);
       try {
@@ -133,16 +199,6 @@ export class MessageFileManager {
       } catch {
         this.messages.set(locale, {});
       }
-    }
-
-    try {
-      const raw = fs.readFileSync(STATUS_FILE, "utf-8");
-      this.status = JSON.parse(raw) as Record<
-        string,
-        Record<string, ProvenanceEntry>
-      >;
-    } catch {
-      this.status = {};
     }
   }
 
@@ -157,9 +213,8 @@ export class MessageFileManager {
   }
 
   /**
-   * Set provenance tracking for a locale/key.
-   * Automatically computes and stores a content hash of the translation
-   * value so drift can be detected later.
+   * Queue a provenance record for append on flush.
+   * Automatically computes content hash if translationValue is provided.
    */
   setProvenance(
     locale: string,
@@ -167,17 +222,20 @@ export class MessageFileManager {
     entry: ProvenanceEntry,
     translationValue?: string
   ): void {
-    if (!this.status[key]) {
-      this.status[key] = {};
-    }
-
-    // Attach content hash if a value was provided
     if (translationValue !== undefined) {
       entry.contentHash = contentHash(translationValue);
     }
 
-    this.status[key]![locale] = entry;
-    this.statusModified = true;
+    // Update in-memory state (last-write-wins)
+    let keyMap = this.provenance.get(key);
+    if (!keyMap) {
+      keyMap = new Map();
+      this.provenance.set(key, keyMap);
+    }
+    keyMap.set(locale, entry);
+
+    // Queue for append
+    this.pendingProvenance.push({ key, locale, ...entry });
   }
 
   /**
@@ -197,15 +255,13 @@ export class MessageFileManager {
   }
 
   /**
-   * Write all modified files atomically (sorted keys for minimal diffs).
-   *
-   * Strategy: write to temp sibling (.filename.pid.tmp) then rename.
-   * On rename failure (Windows edge cases), falls back to direct write.
-   * Git history is the ultimate safety net for tracked files.
+   * Write all modified message files (atomic rename) and append
+   * provenance records (JSONL append — crash-safe by design).
    */
   flush(): { written: string[] } {
     const written: string[] = [];
 
+    // Message files: atomic write via temp + rename
     for (const locale of this.modified) {
       const msgs = this.messages.get(locale);
       if (!msgs) continue;
@@ -215,21 +271,14 @@ export class MessageFileManager {
       written.push(filePath);
     }
 
-    if (this.statusModified) {
-      // Sort status keys too
-      const sortedStatus: Record<string, Record<string, ProvenanceEntry>> = {};
-      for (const key of Object.keys(this.status).sort()) {
-        sortedStatus[key] = this.status[key]!;
-      }
-      atomicWriteFileSync(
-        STATUS_FILE,
-        JSON.stringify(sortedStatus, null, 2) + "\n"
-      );
+    // Provenance: append-only JSONL
+    if (this.pendingProvenance.length > 0) {
+      appendProvenance(this.pendingProvenance);
       written.push(STATUS_FILE);
+      this.pendingProvenance = [];
     }
 
     this.modified.clear();
-    this.statusModified = false;
     return { written };
   }
 }

@@ -31,7 +31,7 @@ import {
   computeSimilarity,
   type ProviderChain,
 } from "./lib/translation-providers.js";
-import { contentHash } from "./lib/message-manager.js";
+import { contentHash, loadProvenance } from "./lib/message-manager.js";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -43,6 +43,9 @@ interface ProvenanceEntry {
   contentHash?: string;
   reviews?: Array<{ reviewer: string; date: string; verdict: string }>;
 }
+
+/** Provenance keyed by (i18n key) → (locale) → entry */
+type StatusData = Map<string, Map<string, ProvenanceEntry>>;
 
 interface AuditResult {
   key: string;
@@ -80,7 +83,6 @@ function parseArgs(): AuditOptions {
 // ── File loading ───────────────────────────────────────────────────
 
 const MESSAGES_DIR = path.resolve(__dirname, "..", "messages");
-const STATUS_FILE = path.resolve(__dirname, "..", "i18n-status.json");
 const ALL_LOCALES = ["es", "zh", "ar", "yi"];
 
 type NestedRecord = { [key: string]: string | NestedRecord };
@@ -162,22 +164,20 @@ function saveCache(cache: PlausibilityCache): void {
 
 // ── Provenance lookup ──────────────────────────────────────────────
 
-type StatusData = Record<string, Record<string, ProvenanceEntry>>;
-
 interface ProvenanceLookup {
   status: "none" | "unreviewed" | "reviewed";
   drifted: boolean;
 }
 
-function getProvenance(
+function getProvenanceStatus(
   status: StatusData,
   key: string,
   locale: string,
   currentValue: string
 ): ProvenanceLookup {
-  const keyEntry = status[key];
+  const keyEntry = status.get(key);
   if (!keyEntry) return { status: "none", drifted: false };
-  const localeEntry = keyEntry[locale];
+  const localeEntry = keyEntry.get(locale);
   if (!localeEntry) return { status: "none", drifted: false };
 
   // Content hash drift: provenance exists but the value has changed
@@ -398,8 +398,8 @@ async function main(): Promise<void> {
     loadJson(path.join(MESSAGES_DIR, "en.json"))
   );
 
-  // Load provenance
-  const status = loadJson(STATUS_FILE) as unknown as StatusData;
+  // Load provenance from JSONL (last-write-wins)
+  const status = loadProvenance();
 
   // Determine locales to audit
   const locales = opts.locale ? [opts.locale] : ALL_LOCALES;
@@ -414,7 +414,7 @@ async function main(): Promise<void> {
 
     for (const [key, localValue] of localeMessages) {
       const enValue = enMessages.get(key) ?? "";
-      const lookup = getProvenance(status, key, locale, localValue);
+      const lookup = getProvenanceStatus(status, key, locale, localValue);
 
       results.push({
         key,

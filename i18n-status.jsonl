@@ -1,0 +1,3 @@
+# i18n provenance tracking — append-only JSONL. See ADR-004 §7.
+# Each line: {"key","locale","method","engine?","source?","date","contentHash?"}
+# Last-write-wins for duplicate (key, locale) pairs.
