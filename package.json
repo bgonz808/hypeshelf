@@ -42,6 +42,8 @@
     "version:check": "npx tsx scripts/check-version.ts",
     "i18n:check": "npx tsx scripts/i18n-check.ts",
     "i18n:extract": "npx tsx scripts/i18n-extract.ts",
+    "i18n:audit": "npx tsx scripts/i18n-audit-translations.ts --warn-only",
+    "i18n:audit:strict": "npx tsx scripts/i18n-audit-translations.ts",
     "spellcheck": "cspell \"messages/**/*.json\" \"src/**/*.{ts,tsx}\""
   },
   "dependencies": {

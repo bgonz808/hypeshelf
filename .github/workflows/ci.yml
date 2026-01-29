@@ -146,6 +146,9 @@ jobs:
       - name: Check i18n coverage
         run: npm run i18n:check
 
+      - name: Audit translation provenance
+        run: npm run i18n:audit
+
   build:
     name: Build
     runs-on: ubuntu-latest

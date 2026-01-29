@@ -108,6 +108,9 @@ backups/*.zip
 # i18n extraction quota tracking (daily usage per provider)
 .i18n-usage.json
 
+# i18n plausibility cache (back-translation results, regenerated on demand)
+.i18n-plausibility-cache.json
+
 # Claude context files (local only, not for repo)
 CLAUDE.md
 
