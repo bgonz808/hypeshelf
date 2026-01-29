@@ -418,6 +418,16 @@ Commits implementing this ADR, recorded as completed:
 - Added `i18n:check` CI job in `.github/workflows/ci.yml`
 - Added `i18n:check` to `.husky/pre-push` hook
 
+### Phase 3: Detection
+
+**Commit**: `65e5e07` — `feat(i18n): add language detection and spellcheck (ADR-004 Phase 3)`
+
+- Integrated `franc@6.2.0` for language detection in `i18n-check.ts` — flags `en.json` values that don't detect as English
+- Set 20-char minimum threshold for franc detection (short strings produce too many false positives)
+- Created `cspell.json` — spell checking with per-locale overrides (non-Latin locales disabled, custom word list)
+- Added `spellcheck` npm script for `messages/**/*.json` and `src/**/*.{ts,tsx}`
+- Dynamic `import("franc")` — graceful degradation when not installed
+
 ### Related Commits (same session)
 
 - `92505c3` — `feat(schema): replace genre enum with free-form string + curated suggestions` — expanded i18n genre keys across all 5 locales (music, game, board-game genres)
