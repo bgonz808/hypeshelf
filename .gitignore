@@ -105,6 +105,9 @@ backups/*.zip
 # Gitleaks
 .gitleaks-report.json
 
+# i18n extraction quota tracking (daily usage per provider)
+.i18n-usage.json
+
 # Claude context files (local only, not for repo)
 CLAUDE.md
 

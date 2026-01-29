@@ -428,6 +428,19 @@ Commits implementing this ADR, recorded as completed:
 - Added `spellcheck` npm script for `messages/**/*.json` and `src/**/*.{ts,tsx}`
 - Dynamic `import("franc")` — graceful degradation when not installed
 
+### Phase 4: Extraction DX
+
+**Commit**: (this commit) — `feat(i18n): add interactive extraction and translation script (ADR-004 Phase 4)`
+
+- Created `scripts/i18n-extract.ts` — interactive CLI: finds ESLint violations, POS-tags context, machine-translates with back-translation sanity checking, writes to message files with provenance
+- Created `scripts/lib/translation-providers.ts` — MyMemory (primary) + LibreTranslate (fallback) with quota tracking and Jaccard similarity scoring
+- Created `scripts/lib/eslint-parser.ts` — runs ESLint `no-literal-string` in JSON mode, parses violations with file context
+- Created `scripts/lib/string-analyzer.ts` — POS tagging via `compromise`, heuristic key suggestion from file path + string content
+- Created `scripts/lib/message-manager.ts` — atomic JSON read/write for all locale files + i18n-status.json provenance sidecar
+- Added `@inquirer/prompts@8.2.0`, `compromise@14.14.5`, `chalk@5.6.2` devDependencies (exact-pinned)
+- Added `i18n:extract` npm script
+- Added `.i18n-usage.json` to `.gitignore` (quota tracking)
+
 ### Related Commits (same session)
 
 - `92505c3` — `feat(schema): replace genre enum with free-form string + curated suggestions` — expanded i18n genre keys across all 5 locales (music, game, board-game genres)
