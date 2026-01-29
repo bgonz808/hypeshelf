@@ -29,6 +29,7 @@ import {
 } from "./lib/translation-providers.js";
 import {
   MessageFileManager,
+  utcDate,
   type ProvenanceEntry,
 } from "./lib/message-manager.js";
 
@@ -236,7 +237,7 @@ function doAccept(
   manager: MessageFileManager,
   forceReview: boolean = false
 ): { action: "accept"; todo: TodoItem } {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcDate();
 
   // Write English
   manager.setMessage("en", key, violation.literal);

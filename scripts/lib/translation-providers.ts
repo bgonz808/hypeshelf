@@ -10,6 +10,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { utcDate } from "./message-manager.js";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ export class QuotaManager {
   }
 
   private today(): string {
-    return new Date().toISOString().slice(0, 10);
+    return utcDate();
   }
 
   getUsed(provider: string): number {

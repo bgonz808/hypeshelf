@@ -31,7 +31,11 @@ import {
   computeSimilarity,
   type ProviderChain,
 } from "./lib/translation-providers.js";
-import { contentHash, loadProvenance } from "./lib/message-manager.js";
+import {
+  contentHash,
+  loadProvenance,
+  utcTimestamp,
+} from "./lib/message-manager.js";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -250,7 +254,7 @@ async function checkPlausibility(
       cache[hash] = {
         similarity,
         backTranslation,
-        timestamp: new Date().toISOString(),
+        timestamp: utcTimestamp(),
       };
     } catch {
       // Network failure — skip plausibility for this entry

@@ -1,3 +1,5 @@
 # i18n provenance tracking — append-only JSONL. See ADR-004 §7.
-# Each line: {"key","locale","method","engine?","source?","date","contentHash?"}
-# Last-write-wins for duplicate (key, locale) pairs.
+# Each line: {"key","locale","method","engine?","source?","date","contentHash?","lifecycleAction","lifecycleAt"}
+# lifecycleAction: created | updated | reviewed | audited
+# lifecycleAt: UTC ISO-8601 (always Z suffix). Display local, store UTC.
+# Last-write-wins for duplicate (key, locale) pairs. Full history preserved.

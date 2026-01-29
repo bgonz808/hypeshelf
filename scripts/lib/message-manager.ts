@@ -32,6 +32,10 @@ export interface ProvenanceEntry {
   source?: string;
   date: string;
   contentHash?: string;
+  /** What happened: created, updated, reviewed, audited */
+  lifecycleAction?: "created" | "updated" | "reviewed" | "audited";
+  /** When it happened — always UTC ISO-8601 (Z suffix) */
+  lifecycleAt?: string;
 }
 
 /** On-disk JSONL record: provenance entry + routing fields */
@@ -75,6 +79,21 @@ function sortKeysDeep(obj: NestedRecord): NestedRecord {
     }
   }
   return sorted;
+}
+
+/**
+ * UTC date as YYYY-MM-DD. Derived from Date.toISOString() which is
+ * spec-guaranteed to return YYYY-MM-DDTHH:mm:ss.sssZ (24 chars).
+ */
+export function utcDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * UTC timestamp as full ISO-8601 with Z suffix.
+ */
+export function utcTimestamp(): string {
+  return new Date().toISOString();
 }
 
 /**
@@ -215,6 +234,8 @@ export class MessageFileManager {
   /**
    * Queue a provenance record for append on flush.
    * Automatically computes content hash if translationValue is provided.
+   * Stamps timestamp (ISO-8601) and infers action (added vs updated)
+   * if not explicitly set.
    */
   setProvenance(
     locale: string,
@@ -224,6 +245,17 @@ export class MessageFileManager {
   ): void {
     if (translationValue !== undefined) {
       entry.contentHash = contentHash(translationValue);
+    }
+
+    // Auto-stamp UTC timestamp
+    if (!entry.lifecycleAt) {
+      entry.lifecycleAt = utcTimestamp();
+    }
+
+    // Infer lifecycle action: if a record already exists for this (key, locale), it's an update
+    if (!entry.lifecycleAction) {
+      const existing = this.provenance.get(key)?.get(locale);
+      entry.lifecycleAction = existing ? "updated" : "created";
     }
 
     // Update in-memory state (last-write-wins)
