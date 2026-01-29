@@ -240,10 +240,12 @@ function doAccept(
 
   // Write English
   manager.setMessage("en", key, violation.literal);
-  manager.setProvenance("en", key, {
-    method: "authored",
-    date: today,
-  });
+  manager.setProvenance(
+    "en",
+    key,
+    { method: "authored", date: today },
+    violation.literal
+  );
 
   // Write translations
   for (const [locale, result] of translations) {
@@ -258,7 +260,7 @@ function doAccept(
       source: "en",
       date: today,
     };
-    manager.setProvenance(locale, key, entry);
+    manager.setProvenance(locale, key, entry, result.translation);
   }
 
   return {

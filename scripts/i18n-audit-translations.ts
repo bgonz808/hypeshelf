@@ -31,6 +31,7 @@ import {
   computeSimilarity,
   type ProviderChain,
 } from "./lib/translation-providers.js";
+import { contentHash } from "./lib/message-manager.js";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ interface ProvenanceEntry {
   engine?: string;
   source?: string;
   date?: string;
+  contentHash?: string;
   reviews?: Array<{ reviewer: string; date: string; verdict: string }>;
 }
 
@@ -48,6 +50,7 @@ interface AuditResult {
   localValue: string;
   enValue: string;
   provenance: "none" | "unreviewed" | "reviewed";
+  drifted: boolean;
   similarity?: number;
   backTranslation?: string;
 }
@@ -161,26 +164,39 @@ function saveCache(cache: PlausibilityCache): void {
 
 type StatusData = Record<string, Record<string, ProvenanceEntry>>;
 
+interface ProvenanceLookup {
+  status: "none" | "unreviewed" | "reviewed";
+  drifted: boolean;
+}
+
 function getProvenance(
   status: StatusData,
   key: string,
-  locale: string
-): "none" | "unreviewed" | "reviewed" {
+  locale: string,
+  currentValue: string
+): ProvenanceLookup {
   const keyEntry = status[key];
-  if (!keyEntry) return "none";
+  if (!keyEntry) return { status: "none", drifted: false };
   const localeEntry = keyEntry[locale];
-  if (!localeEntry) return "none";
+  if (!localeEntry) return { status: "none", drifted: false };
+
+  // Content hash drift: provenance exists but the value has changed
+  const drifted =
+    localeEntry.contentHash !== undefined &&
+    localeEntry.contentHash !== contentHash(currentValue);
 
   // Check if reviewed/approved
-  if (localeEntry.method === "reviewed") return "reviewed";
+  if (localeEntry.method === "reviewed") {
+    return { status: "reviewed", drifted };
+  }
   if (
     localeEntry.reviews &&
     localeEntry.reviews.some((r) => r.verdict === "approved")
   ) {
-    return "reviewed";
+    return { status: "reviewed", drifted };
   }
 
-  return "unreviewed";
+  return { status: "unreviewed", drifted };
 }
 
 // ── Plausibility check ────────────────────────────────────────────
@@ -255,6 +271,7 @@ function printReport(results: AuditResult[], opts: AuditOptions): boolean {
   const noProvenance = results.filter((r) => r.provenance === "none");
   const unreviewed = results.filter((r) => r.provenance === "unreviewed");
   const reviewed = results.filter((r) => r.provenance === "reviewed");
+  const drifted = results.filter((r) => r.drifted);
   const lowPlausibility = results.filter(
     (r) => r.similarity !== undefined && r.similarity < 0.5
   );
@@ -267,15 +284,16 @@ function printReport(results: AuditResult[], opts: AuditOptions): boolean {
 
   // Coverage summary per locale
   const locales = [...new Set(results.map((r) => r.locale))].sort();
-  console.log("  Locale  Total   No-prov  Unreviewed  Reviewed");
-  console.log("  ──────  ─────   ───────  ──────────  ────────");
+  console.log("  Locale  Total   No-prov  Unreviewed  Reviewed  Drifted");
+  console.log("  ──────  ─────   ───────  ──────────  ────────  ───────");
   for (const locale of locales) {
     const lr = results.filter((r) => r.locale === locale);
     const np = lr.filter((r) => r.provenance === "none").length;
     const ur = lr.filter((r) => r.provenance === "unreviewed").length;
     const rv = lr.filter((r) => r.provenance === "reviewed").length;
+    const dr = lr.filter((r) => r.drifted).length;
     console.log(
-      `  ${locale.padEnd(8)}${String(lr.length).padEnd(8)}${String(np).padEnd(9)}${String(ur).padEnd(12)}${rv}`
+      `  ${locale.padEnd(8)}${String(lr.length).padEnd(8)}${String(np).padEnd(9)}${String(ur).padEnd(12)}${String(rv).padEnd(10)}${dr}`
     );
   }
 
@@ -283,6 +301,7 @@ function printReport(results: AuditResult[], opts: AuditOptions): boolean {
   console.log(`  No provenance:      ${noProvenance.length}`);
   console.log(`  Unreviewed:         ${unreviewed.length}`);
   console.log(`  Reviewed/approved:  ${reviewed.length}`);
+  console.log(`  Content drifted:    ${drifted.length}`);
 
   // Plausibility results (if checked)
   const hasPlausibility = results.some((r) => r.similarity !== undefined);
@@ -323,15 +342,37 @@ function printReport(results: AuditResult[], opts: AuditOptions): boolean {
     }
   }
 
+  // Content drift detail
+  if (drifted.length > 0) {
+    console.log(
+      `\n  🔀 Content drifted (translation changed, provenance stale):`
+    );
+    for (const r of drifted.slice(0, 15)) {
+      console.log(
+        `    [${r.locale}] ${r.key}: "${r.localValue.slice(0, 40)}…"`
+      );
+    }
+    if (drifted.length > 15) {
+      console.log(`    ... and ${drifted.length - 15} more`);
+    }
+  }
+
   // Determine exit status
   const hasUnvetted = noProvenance.length > 0 || unreviewed.length > 0;
   const hasLowPlausibility = lowPlausibility.length > 0;
+  const hasDrift = drifted.length > 0;
+  const hasIssues = hasUnvetted || hasLowPlausibility || hasDrift;
 
-  if (hasUnvetted || hasLowPlausibility) {
+  if (hasIssues) {
     const label = opts.warnOnly ? "⚠" : "✗";
     console.log(
       `\n  ${label} ${noProvenance.length + unreviewed.length} unvetted translation(s)`
     );
+    if (hasDrift) {
+      console.log(
+        `  ${label} ${drifted.length} drifted translation(s) (provenance stale)`
+      );
+    }
     if (hasLowPlausibility) {
       console.log(
         `  ${label} ${lowPlausibility.length} low-plausibility translation(s)`
@@ -373,14 +414,15 @@ async function main(): Promise<void> {
 
     for (const [key, localValue] of localeMessages) {
       const enValue = enMessages.get(key) ?? "";
-      const provenance = getProvenance(status, key, locale);
+      const lookup = getProvenance(status, key, locale, localValue);
 
       results.push({
         key,
         locale,
         localValue,
         enValue,
-        provenance,
+        provenance: lookup.status,
+        drifted: lookup.drifted,
       });
     }
   }

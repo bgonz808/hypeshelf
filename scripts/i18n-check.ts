@@ -260,8 +260,64 @@ async function main(): Promise<void> {
     }
   }
 
-  // Coverage matrix header
+  // ── Provenance sidecar validation ────────────────────────────────
   const nonBaseLocales = locales.filter((l) => l !== BASE_LOCALE);
+  const STATUS_PATH = path.resolve(__dirname, "..", "i18n-status.json");
+  try {
+    const statusRaw = fs.readFileSync(STATUS_PATH, "utf-8");
+    const statusData = JSON.parse(statusRaw) as Record<
+      string,
+      Record<string, unknown>
+    >;
+    const baseKeySet = new Set(baseKeys);
+
+    // Orphaned provenance: keys in i18n-status.json not in en.json
+    const statusKeys = Object.keys(statusData).filter((k) => k !== "_meta");
+    const orphanedKeys = statusKeys.filter((k) => !baseKeySet.has(k));
+    if (orphanedKeys.length > 0) {
+      console.log(
+        `  ⚠ ${String(orphanedKeys.length)} orphaned provenance key(s) (not in ${BASE_LOCALE}.json):`
+      );
+      for (const key of orphanedKeys.slice(0, 10)) {
+        console.log(`    - ${key}`);
+      }
+      if (orphanedKeys.length > 10) {
+        console.log(`    ... and ${String(orphanedKeys.length - 10)} more`);
+      }
+      warnings += orphanedKeys.length;
+      console.log();
+    }
+
+    // Missing provenance: keys in non-en locales with no provenance
+    let missingProv = 0;
+    for (const locale of nonBaseLocales) {
+      const messages = localeData.get(locale);
+      if (!messages) continue;
+      const lKeys = collectKeys(messages).filter((k) => !k.startsWith("_meta"));
+      for (const key of lKeys) {
+        const keyEntry = statusData[key] as Record<string, unknown> | undefined;
+        if (!keyEntry || !keyEntry[locale]) {
+          missingProv++;
+        }
+      }
+    }
+    if (missingProv > 0) {
+      console.log(
+        `  ⚠ ${String(missingProv)} translation(s) across non-en locales have no provenance in i18n-status.json`
+      );
+      warnings++;
+      console.log();
+    }
+  } catch {
+    // i18n-status.json missing or malformed — non-fatal
+    console.log(
+      "  ⚠ Could not validate i18n-status.json (missing or malformed)"
+    );
+    warnings++;
+    console.log();
+  }
+
+  // Coverage matrix header
   const coverageStats = new Map<
     string,
     { total: number; present: number; waived: number }
