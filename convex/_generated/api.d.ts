@@ -11,6 +11,7 @@
 import type * as lib_redaction from "../lib/redaction.js";
 import type * as likes from "../likes.js";
 import type * as migrations from "../migrations.js";
+import type * as providerConfigs from "../providerConfigs.js";
 import type * as recommendations from "../recommendations.js";
 import type * as scoring from "../scoring.js";
 import type * as users from "../users.js";
@@ -25,6 +26,7 @@ declare const fullApi: ApiFromModules<{
   "lib/redaction": typeof lib_redaction;
   likes: typeof likes;
   migrations: typeof migrations;
+  providerConfigs: typeof providerConfigs;
   recommendations: typeof recommendations;
   scoring: typeof scoring;
   users: typeof users;

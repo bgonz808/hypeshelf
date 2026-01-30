@@ -17,6 +17,7 @@ export function redactRecommendationForPublic(rec: Doc<"recommendations">) {
     title: rec.title,
     mediaType: rec.mediaType,
     genre: rec.genre,
+    coverUrl: rec.coverUrl,
     link: rec.link,
     blurb: rec.blurb,
     likeCount: rec.likeCount,

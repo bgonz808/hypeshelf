@@ -14,6 +14,7 @@ type MediaType =
   | "music"
   | "podcast"
   | "game"
+  | "board-game"
   | "other";
 
 const MEDIA_TYPES: { value: MediaType | "all"; label: string }[] = [
@@ -23,7 +24,8 @@ const MEDIA_TYPES: { value: MediaType | "all"; label: string }[] = [
   { value: "book", label: "Books" },
   { value: "music", label: "Music" },
   { value: "podcast", label: "Podcasts" },
-  { value: "game", label: "Games" },
+  { value: "game", label: "Video Games" },
+  { value: "board-game", label: "Board Games" },
   { value: "other", label: "Other" },
 ];
 
