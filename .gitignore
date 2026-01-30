@@ -54,6 +54,9 @@ next-env.d.ts
 # next-intl generated type declarations
 *.d.json.ts
 
+# Claude Code local config
+.claude/
+
 # IDE - commit examples, ignore actuals
 .vscode/*
 !.vscode/settings.json.example
@@ -67,6 +70,7 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 Desktop.ini
+nul
 *.swp
 *.swo
 *~
@@ -116,6 +120,9 @@ CLAUDE.md
 
 # Translation API probe (dry-run scratch data, not for repo)
 .translation-probe/
+
+# Python bytecode
+__pycache__/
 
 # Docker bind-mount volumes (model cache, persists between runs)
 .docker-volumes/
