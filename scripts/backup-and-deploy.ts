@@ -25,9 +25,24 @@ import { join } from "path";
 const BACKUPS_DIR = join(process.cwd(), "backups");
 const MAX_BACKUPS = 5; // Keep last 5 backups, delete older ones
 
+/**
+ * Format a Date as a compact filename timestamp: YYYYMMDD_HHMMSS.
+ * Extracts fields from the spec-guaranteed ISO-8601 layout.
+ */
+function formatFilenameTimestamp(date: Date): string {
+  // eslint-disable-next-line hypeshelf/no-fragile-date-ops -- canonical filename timestamp formatter
+  const iso = date.toISOString(); // YYYY-MM-DDTHH:mm:ss.sssZ (ECMA-262 §21.4.4.36)
+  const y = iso.slice(0, 4);
+  const mo = iso.slice(5, 7);
+  const d = iso.slice(8, 10);
+  const h = iso.slice(11, 13);
+  const mi = iso.slice(14, 16);
+  const s = iso.slice(17, 19);
+  return `${y}${mo}${d}_${h}${mi}${s}`;
+}
+
 function timestamp(): string {
-  const now = new Date();
-  return now.toISOString().replace(/[-:]/g, "").replace("T", "_").slice(0, 15);
+  return formatFilenameTimestamp(new Date());
 }
 
 function getGitInfo(): { commitHash: string; isDirty: boolean } {

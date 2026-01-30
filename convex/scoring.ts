@@ -5,6 +5,8 @@
  * Add new algorithms here, toggle via SCORING_ALGORITHM env var or A/B test.
  */
 
+import { MS_PER_HOUR } from "../src/lib/temporal-constants";
+
 // Types for scoring
 export interface ScoredItem {
   id: string;
@@ -54,7 +56,7 @@ const algorithms: Record<
    */
   hacker_news: (item, params) => {
     const gravity = params.gravity ?? 1.5;
-    const hoursOld = (Date.now() - item.createdAt) / (1000 * 60 * 60);
+    const hoursOld = (Date.now() - item.createdAt) / MS_PER_HOUR;
     return item.likeCount / Math.pow(hoursOld + 2, gravity);
   },
 
@@ -96,7 +98,7 @@ const algorithms: Record<
     const w7d = params.weight_7d ?? 1;
 
     // Approximation based on total likes and recency
-    const hoursOld = (Date.now() - item.createdAt) / (1000 * 60 * 60);
+    const hoursOld = (Date.now() - item.createdAt) / MS_PER_HOUR;
 
     if (hoursOld <= 24) {
       return item.likeCount * w24h;
@@ -147,7 +149,7 @@ const algorithms: Record<
    */
   simple_recent: (item, params) => {
     const windowHours = params.window_hours ?? 168;
-    const hoursOld = (Date.now() - item.createdAt) / (1000 * 60 * 60);
+    const hoursOld = (Date.now() - item.createdAt) / MS_PER_HOUR;
 
     // If created within window, use like count
     // Otherwise, would need per-like timestamps for accuracy

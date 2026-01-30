@@ -1,6 +1,7 @@
 import nextConfig from "eslint-config-next";
 import security from "eslint-plugin-security";
 import i18next from "eslint-plugin-i18next";
+import noFragileDateOps from "./eslint-rules/no-fragile-date-ops.js";
 
 /** @type {import('eslint').Linter.Config[]} */
 const config = [
@@ -57,6 +58,22 @@ const config = [
     rules: {
       "i18next/no-literal-string": "warn",
     },
+  },
+
+  // Custom date/time safety rule
+  {
+    plugins: {
+      hypeshelf: { rules: { "no-fragile-date-ops": noFragileDateOps } },
+    },
+    rules: {
+      "hypeshelf/no-fragile-date-ops": "error",
+    },
+  },
+
+  // Suppress date-ops rule in canonical i18n utilities (they ARE the blessed implementation)
+  {
+    files: ["scripts/lib/message-manager.ts"],
+    rules: { "hypeshelf/no-fragile-date-ops": "off" },
   },
 
   // Ignore patterns

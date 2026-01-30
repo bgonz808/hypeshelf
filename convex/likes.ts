@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { rankByScore, getAlgorithmConfig } from "./scoring";
 import { redactRecommendationForPublic } from "./lib/redaction";
+import { MS_PER_DAY } from "../src/lib/temporal-constants";
 
 /**
  * Toggle like on a recommendation
@@ -113,7 +114,7 @@ export const getHot = query({
   handler: async (ctx, args) => {
     const days = args.days ?? 7;
     const limit = args.limit ?? 10;
-    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - days * MS_PER_DAY;
 
     // Get algorithm config (supports A/B testing via user identity)
     const identity = await ctx.auth.getUserIdentity();
