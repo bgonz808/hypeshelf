@@ -632,6 +632,109 @@ LM Studio validation pass (when available) adjusts ±0.1-0.15 on top.
 - `.gitignore` — Added `.docker-volumes/`
 - `package.json` — Added `i18n:services:up:gpu` script
 
+#### Commit 3: (pending) — `refactor(i18n): defer model selection to PyTorch runtime`
+
+Architectural change: model + precision selection moved from the TS host-side heuristic to the Python server inside the Docker container. The server uses canonical PyTorch APIs for authoritative hardware detection.
+
+##### Problem
+
+The previous design had two independent selection paths that didn't communicate:
+
+1. **TS side** (`recommendModel()`) ran on the host _before_ Docker launch, picking model + precision using `nvidia-smi` output and GPU name heuristics (`estimateComputeCapability()`), then passing them as env vars.
+2. **Python side** (`_resolve_precision()`) ran _inside_ the container with real PyTorch APIs, but only controlled precision — the model was already baked in.
+
+This caused correctness issues:
+
+- TS heuristic could pick `bf16` based on GPU name pattern matching, but `torch.cuda.is_bf16_supported()` inside the container might disagree.
+- Forcing `NLLB_PARAMS=3.3B NLLB_PRECISION=int4` on a CPU-only box would OOM with no warning.
+- GPU name regex was NVIDIA-centric; AMD and Apple required separate heuristic branches that were inherently incomplete.
+
+##### Solution: Server as Authority
+
+The Python server now owns the entire selection:
+
+1. **Device detection**: `_detect_device()` queries `torch.cuda.is_available()` (covers both NVIDIA and AMD ROCm via HIP), `torch.backends.mps.is_available()`, `torch.xpu.is_available()`.
+2. **Precision detection**: `_resolve_precision()` uses `torch.cuda.is_bf16_supported()` (canonical API, not heuristic), `/proc/cpuinfo` for AVX512BF16 on CPU.
+3. **Model selection**: `_resolve_model()` has the NLLB specs matrix (3.3B/1.3B/600M), queries VRAM via `torch.cuda.get_device_properties()`, and picks the largest model that fits. Falls back to lower precisions if needed.
+4. **Override validation**: User overrides (`NLLB_PARAMS`, `NLLB_PRECISION`, `MODEL_NAME`) are honored but validated — the server logs a warning if the combo likely won't fit, rather than silently OOMing.
+
+##### TS Side Simplified
+
+`recommendModel()` → `recommendProfile()`. The TS batch translator now only decides:
+
+- CPU or GPU Docker compose profile (for `docker compose --profile`)
+- Passes env var overrides through to the container
+
+After the container starts, it reads `/health` to learn what the server actually selected. This is purely informational — the translator works regardless.
+
+##### Graceful Degradation Tiers
+
+| Tier | What's available | What runs                   | Model selection                             |
+| ---- | ---------------- | --------------------------- | ------------------------------------------- |
+| 1    | Docker + GPU     | Container with GPU profile  | Server: largest model that fits VRAM        |
+| 2    | Docker, no GPU   | Container with CPU profile  | Server: largest cpu_practical model (≤1.3B) |
+| 3    | No Docker        | Dictionary + MyMemory cloud | N/A — no local model needed                 |
+
+Tier 3 works on any machine (no Docker, no GPU, no Python). Tier 2 needs ~1.7 GB RAM minimum (600M fp32). No hardware combination is blocked.
+
+##### Canonical PyTorch APIs Used
+
+| Detection           | API                                             | Replaces                                |
+| ------------------- | ----------------------------------------------- | --------------------------------------- |
+| bf16 support        | `torch.cuda.is_bf16_supported()`                | GPU name regex matching                 |
+| Compute capability  | `torch.cuda.get_device_capability(0)`           | `estimateComputeCapability()` heuristic |
+| VRAM                | `torch.cuda.get_device_properties(0).total_mem` | `nvidia-smi` parsing                    |
+| Device availability | `torch.cuda.is_available()`                     | `nvidia-smi` exit code                  |
+| MPS (Apple)         | `torch.backends.mps.is_available()`             | `system_profiler` parsing               |
+| XPU (Intel)         | `torch.xpu.is_available()`                      | N/A (new)                               |
+
+PyTorch's `torch.cuda` covers both NVIDIA and AMD ROCm (via the HIP compatibility layer) — no vendor-specific detection needed on the server side.
+
+##### CPU Feature Detection
+
+Cross-platform CPU instruction set detection added for informed CPU precision selection:
+
+| Platform         | Method                                                      | Detects                     |
+| ---------------- | ----------------------------------------------------------- | --------------------------- |
+| Linux / Docker   | `/proc/cpuinfo` flags                                       | AVX2, AVX-512, AVX512BF16   |
+| Windows (native) | WSL `cat /proc/cpuinfo`, fallback to model string heuristic | Same                        |
+| macOS            | `sysctl machdep.cpu.features` + `leaf7_features`            | Same                        |
+| ARM              | `os.arch()` check                                           | NEON (always true on ARM64) |
+
+Features inform precision auto-selection:
+
+- AVX512BF16 → bf16 on CPU (native, best performance)
+- AVX-512 → int8 via bitsandbytes CPU backend
+- Neither → fp32 (safest default)
+
+##### TLS + HMAC Auth
+
+Added in this session (not previously in ADR):
+
+- **TLS**: Self-signed cert auto-generated at container startup via Python `cryptography` library. Written to tmpfs (`/tmp/tls/`), never persisted. Uvicorn serves HTTPS.
+- **HMAC auth**: `Authorization: Bearer HMAC-SHA256:<timestamp>:<signature>`. Server validates timestamp within 30s window, constant-time HMAC comparison. `/health` exempt (healthcheck compatibility).
+- **API key**: Auto-generated 32-byte hex token in `.docker-volumes/nllb-api-key`. Mounted read-only in container.
+- **Multi-dev mode**: `NLLB_NETWORK_MODE=lan` binds to `0.0.0.0` instead of `127.0.0.1`.
+
+##### Environment Variable Override Matrix
+
+| Env Var             | Values                                 | Where resolved                 | Effect                         |
+| ------------------- | -------------------------------------- | ------------------------------ | ------------------------------ |
+| `NLLB_DEVICE`       | `cpu`, `gpu`                           | TS (profile) + Python (device) | Force device                   |
+| `NLLB_PARAMS`       | `600M`, `1.3B`, `3.3B`                 | Python (model)                 | Friendly model size            |
+| `NLLB_PRECISION`    | `fp32`, `bf16`, `fp16`, `int8`, `int4` | Python (precision)             | Force precision                |
+| `MODEL_NAME`        | HuggingFace ID                         | Python (model)                 | Advanced: exact model override |
+| `NLLB_NETWORK_MODE` | `local`, `lan`                         | TS (bind address)              | LAN exposure                   |
+| `NLLB_HOST`         | IP address                             | TS (client)                    | Connect to remote NLLB         |
+
+##### Files Changed
+
+- `docker/nllb-server.py` — Added model selection matrix (`NLLB_SPECS`, `_resolve_model()`), canonical PyTorch API usage, OOM validation, CPU feature detection, NLLB_PARAMS alias support
+- `scripts/lib/port-checker.ts` — Replaced `recommendModel()` with `recommendProfile()`, removed NLLB_SPECS matrix, `estimateComputeCapability()`, `BYTES_PER_PARAM`. Added `CpuInfo` interface, `detectCpu()` cross-platform
+- `scripts/i18n-translate-batch.ts` — Uses `recommendProfile()`, removed model/precision env var injection to docker compose (server handles it)
+- `docker/docker-compose.i18n.yml` — Added NLLB_PARAMS pass-through, removed hardcoded MODEL_NAME default
+- `docker/Dockerfile.nllb` — Removed hardcoded MODEL_NAME default (server auto-selects)
+
 #### Deferred Items
 
 - CI workflow (`i18n-translate.yml`) for automated PR creation on `en.json` changes
@@ -640,6 +743,7 @@ LM Studio validation pass (when available) adjusts ±0.1-0.15 on top.
 - Argos Translate integration (offline, LGPL, ~100 MB per pair)
 - Sibling batching (comma-delimited namespace groups) — currently per-key with bracket hints
 - `translation-overrides.json` manual override map for terms that resist all automated strategies
+- CTranslate2 runtime (6-10x faster CPU inference, all 200 NLLB languages, different API)
 
 #### Self-Hosting Findings
 
@@ -649,7 +753,7 @@ LM Studio validation pass (when available) adjusts ±0.1-0.15 on top.
 | Opus-MT                 | ~300 MB/pair                  | ~1 GB   | ~0.5-1s/sentence | N/A (CPU-only) | MIT          |
 | Argos Translate         | ~100 MB/pair                  | ~500 MB | ~1-2s/sentence   | Optional       | LGPL         |
 
-Docker image sizes: GPU (CUDA 12.1) ~5.8 GB, CPU ~2.5 GB. Difference is the CUDA torch wheel (~780 MB) + NVIDIA runtime libs (~1.8 GB).
+Docker image sizes: GPU (CUDA 12.8) ~5.8 GB, CPU ~2.5 GB. Difference is the CUDA torch wheel (~780 MB) + NVIDIA runtime libs (~1.8 GB).
 
 ### Related Commits (same session)
 
