@@ -1,0 +1,45 @@
+# i18n Translation Services
+#
+# Usage:
+#   docker compose -f docker/docker-compose.i18n.yml up -d
+#   docker compose -f docker/docker-compose.i18n.yml down
+#
+# NLLB model (~1.2 GB) is downloaded on first run and cached in a volume.
+# CPU by default. For GPU, uncomment the deploy section below.
+
+services:
+  nllb:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.nllb
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_NAME=${NLLB_MODEL:-facebook/nllb-200-distilled-600M}
+    volumes:
+      - nllb-cache:/root/.cache
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s # model download + load time
+
+    # ── GPU support (uncomment for NVIDIA GPU) ──
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  nllb-cache:

@@ -114,6 +114,9 @@ backups/*.zip
 # Claude context files (local only, not for repo)
 CLAUDE.md
 
+# Translation API probe (dry-run scratch data, not for repo)
+.translation-probe/
+
 # Playwright MCP screenshots
 .playwright-mcp/
 

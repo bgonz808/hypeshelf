@@ -36,6 +36,12 @@ export interface ProvenanceEntry {
   lifecycleAction?: "created" | "updated" | "reviewed" | "audited";
   /** When it happened — always UTC ISO-8601 (Z suffix) */
   lifecycleAt?: string;
+  /** Composite confidence score 0..1 from translation strategy */
+  confidence?: number;
+  /** How the translation was produced */
+  translationMethod?: "dictionary" | "mt-local" | "mt-cloud" | "ensemble";
+  /** Human-readable audit trail from translation strategy */
+  report?: string[];
 }
 
 /** On-disk JSONL record: provenance entry + routing fields */

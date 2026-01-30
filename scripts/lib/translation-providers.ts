@@ -24,7 +24,12 @@ export interface TranslationResult {
 
 export interface TranslationProvider {
   name: string;
-  translate(text: string, from: string, to: string): Promise<string>;
+  translate(
+    text: string,
+    from: string,
+    to: string,
+    context?: { key?: string }
+  ): Promise<string>;
   supportsLocale(locale: string): boolean;
   getRemainingQuota(): number;
 }

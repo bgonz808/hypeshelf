@@ -1,0 +1,44 @@
+# NLLB-600M Translation Server
+#
+# Serves Facebook's NLLB-200 (600M distilled) model via FastAPI.
+# CPU by default. For GPU, uncomment the CUDA section below.
+#
+# Usage:
+#   docker build -f docker/Dockerfile.nllb -t hypeshelf-nllb .
+#   docker run -p 8000:8000 -v nllb-cache:/root/.cache hypeshelf-nllb
+#
+# Model is downloaded on first run (~1.2 GB) and cached in the Docker volume.
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System deps for sentencepiece
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+# Python deps
+RUN pip install --no-cache-dir \
+    transformers==4.47.1 \
+    sentencepiece==0.2.0 \
+    fastapi==0.115.6 \
+    uvicorn==0.34.0 \
+    torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+
+# ── For GPU support, replace the torch line above with: ──
+# RUN pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
+# And use the nvidia runtime in docker-compose:
+#   runtime: nvidia
+#   environment:
+#     - NVIDIA_VISIBLE_DEVICES=all
+
+COPY docker/nllb-server.py /app/server.py
+
+ENV MODEL_NAME="facebook/nllb-200-distilled-600M"
+ENV HOST="0.0.0.0"
+ENV PORT="8000"
+
+EXPOSE 8000
+
+CMD ["python", "server.py"]
