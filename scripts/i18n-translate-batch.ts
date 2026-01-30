@@ -32,6 +32,7 @@ import {
 } from "./lib/translation-strategy.js";
 import { probeAllServices, detectGpu } from "./lib/port-checker.js";
 import { execSync } from "node:child_process";
+import { MS_PER_SECOND } from "../src/lib/temporal-constants.js";
 
 // ── CLI Args ────────────────────────────────────────────────────────
 
@@ -321,7 +322,7 @@ async function waitForNllb(
     const s = await probeAllServices();
     if (s.nllb) {
       console.log(
-        `  NLLB ready (${Math.round((Date.now() - start) / 1000)}s).`
+        `  NLLB ready (${Math.round((Date.now() - start) / MS_PER_SECOND)}s).`
       );
       return s;
     }
