@@ -110,6 +110,7 @@ export interface EnhancedTranslationResult {
   similarity?: number;
   dictionarySenses?: Array<{ pos: string; gloss: string; domain: string }>;
   validationScore?: number; // 0..1 from LM Studio, or undefined
+  metrics?: import("./translation-providers.js").TranslationMetrics;
   report: string[]; // human-readable audit trail
 }
 
@@ -169,6 +170,9 @@ export class TranslationStrategy {
     let dictionarySenses: EnhancedTranslationResult["dictionarySenses"];
 
     // ── Step 1: Gather candidates from dictionary + MT ────────────
+    let metrics:
+      | import("./translation-providers.js").TranslationMetrics
+      | undefined;
     let dictTranslation: string | undefined;
 
     if (wordCount <= 2 && this.dictionary.has(enValue)) {
@@ -219,6 +223,7 @@ export class TranslationStrategy {
 
         mtTranslation = raw;
         mtProvider = "nllb-local";
+        metrics = this.localModel.lastMetrics ?? undefined;
         report.push(`NLLB local: "${mtTranslation}"`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -397,6 +402,7 @@ export class TranslationStrategy {
       similarity,
       dictionarySenses,
       validationScore,
+      metrics,
       report,
     };
   }

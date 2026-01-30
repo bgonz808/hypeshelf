@@ -1,0 +1,14 @@
+{
+  "sentences": [
+    "Hello",
+    "The weather is nice today.",
+    "Machine translation has improved significantly in recent years thanks to advances in deep learning.",
+    "Please add this book to my recommendations list.",
+    "Rock",
+    "The quick brown fox jumps over the lazy dog near the riverbank on a sunny afternoon.",
+    "Sign in to your account to view personalized recommendations from friends.",
+    "Jazz"
+  ],
+  "source_lang": "eng_Latn",
+  "target_lang": "spa_Latn"
+}

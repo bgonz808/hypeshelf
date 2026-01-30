@@ -14,6 +14,17 @@ import { utcDate } from "./message-manager.js";
 
 // ── Types ──────────────────────────────────────────────────────────
 
+export interface TranslationMetrics {
+  input_tokens: number;
+  output_tokens: number;
+  tokenize_ms: number;
+  generate_ms: number;
+  ttft_ms: number;
+  decode_ms: number;
+  total_ms: number;
+  throughput_tok_s: number;
+}
+
 export interface TranslationResult {
   translation: string;
   backTranslation: string;

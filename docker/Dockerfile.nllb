@@ -1,15 +1,18 @@
-# NLLB-600M Translation Server
+# NLLB Translation Server
 #
-# Serves Facebook's NLLB-200 (600M distilled) model via FastAPI.
+# Serves Facebook's NLLB-200 model via FastAPI with auto-precision selection.
 #
-# Build arg TORCH_VARIANT selects CPU or CUDA wheel:
-#   --build-arg TORCH_VARIANT=cpu   (default, ~200 MB)
-#   --build-arg TORCH_VARIANT=cu121 (CUDA 12.1, ~2 GB)
+# Build args:
+#   TORCH_VARIANT  - cpu (default, ~200 MB) or cu128 (CUDA 12.8, ~2 GB)
+#
+# Precision is auto-detected at runtime:
+#   CPU:  fp32
+#   GPU:  bf16 (Ampere+) or fp16, with int8/int4 fallback for small VRAM
 #
 # Security: runs as non-root user, minimal filesystem writes.
-# Model is downloaded on first run (~1.2 GB) and cached via bind mount.
+# Model is downloaded on first run and cached via bind mount.
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
@@ -22,18 +25,30 @@ RUN apt-get update && \
 
 # Torch — installed first with variant-specific index
 RUN pip install --no-cache-dir \
-    torch==2.5.1 --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
+    torch==2.10.0 --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
 
 # Remaining Python deps (standard PyPI)
 RUN pip install --no-cache-dir \
-    transformers==4.47.1 \
-    sentencepiece==0.2.0 \
-    fastapi==0.115.6 \
-    uvicorn==0.34.0
+    transformers==5.0.0 \
+    sentencepiece==0.2.1 \
+    accelerate==1.6.0 \
+    fastapi==0.128.0 \
+    uvicorn==0.40.0 \
+    cryptography==46.0.4
+
+# bitsandbytes — multi-backend int8/int4 quantization (~59 MB)
+# Supports CUDA, AMD ROCm, Apple MPS, and CPU (AVX512-optimized)
+RUN pip install --no-cache-dir bitsandbytes==0.49.1
 
 # Remove build tools (no longer needed at runtime)
 RUN apt-get purge -y --auto-remove build-essential && \
     rm -rf /var/lib/apt/lists/*
+
+# Bake git commit date into the image so /health can report version_at
+# without needing .git in the container. Pass at build time:
+#   docker build --build-arg GIT_COMMIT_DATE=$(git log -1 --format=%aI -- docker/nllb-server.py)
+ARG GIT_COMMIT_DATE=""
+ENV NLLB_GIT_COMMIT_DATE=${GIT_COMMIT_DATE}
 
 COPY docker/nllb-server.py /app/server.py
 
@@ -44,7 +59,8 @@ RUN mkdir -p /home/nllb/.cache && chown -R nllb:nllb /home/nllb
 
 USER nllb
 
-ENV MODEL_NAME="facebook/nllb-200-distilled-600M"
+# Model auto-selected by server at runtime. Override with NLLB_PARAMS or MODEL_NAME.
+ENV MODEL_NAME=""
 ENV HOST="0.0.0.0"
 ENV PORT="8000"
 ENV HF_HOME="/home/nllb/.cache/huggingface"

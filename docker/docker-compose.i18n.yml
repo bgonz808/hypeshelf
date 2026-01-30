@@ -6,6 +6,9 @@
 # GPU (NVIDIA):
 #   docker compose -f docker/docker-compose.i18n.yml --profile gpu up -d
 #
+# Multi-dev (LAN) mode:
+#   NLLB_NETWORK_MODE=lan docker compose -f docker/docker-compose.i18n.yml up -d
+#
 # The GPU profile builds with CUDA torch and reserves the GPU device.
 # Only one of nllb (CPU) or nllb-gpu runs — they share port 8000.
 #
@@ -13,7 +16,10 @@
 # .docker-volumes/nllb-cache/ (gitignored, repo-local bind mount).
 #
 # Security:
-#   - Localhost-only port binding (127.0.0.1)
+#   - TLS with auto-generated self-signed cert (ephemeral tmpfs)
+#   - HMAC-SHA256 bearer token auth on /translate
+#   - Localhost-only port binding by default (opt-in LAN via NLLB_NETWORK_MODE)
+#   - API key file mounted read-only
 #   - All default capabilities dropped; only NET_BIND_SERVICE re-added
 #   - Read-only root filesystem (tmpfs for /tmp)
 #   - No privilege escalation
@@ -22,12 +28,30 @@
 
 x-nllb-common: &nllb-common
   ports:
-    - "127.0.0.1:8000:8000"
+    - "${NLLB_BIND:-127.0.0.1}:8000:8000"
   environment:
-    - MODEL_NAME=${NLLB_MODEL:-facebook/nllb-200-distilled-600M}
+    # Model + precision auto-selected by server using PyTorch APIs.
+    # Override with NLLB_PARAMS (600M/1.3B/3.3B), NLLB_PRECISION, NLLB_DEVICE.
+    # MODEL_NAME is advanced — prefer NLLB_PARAMS for friendly aliases.
+    - MODEL_NAME=${MODEL_NAME:-}
+    - NLLB_PARAMS=${NLLB_PARAMS:-}
+    - NLLB_PRECISION=${NLLB_PRECISION:-}
+    - NLLB_DEVICE=${NLLB_DEVICE:-}
     - HF_HOME=/home/nllb/.cache/huggingface
+    - NLLB_API_KEY=${NLLB_API_KEY:-}
+    # Resource monitor thresholds (see nllb-server.py ResourceMonitor)
+    - NLLB_VRAM_SOFT_MB=${NLLB_VRAM_SOFT_MB:-2000}
+    - NLLB_VRAM_HARD_MB=${NLLB_VRAM_HARD_MB:-500}
+    - NLLB_RAM_SOFT_MB=${NLLB_RAM_SOFT_MB:-4000}
+    - NLLB_RAM_HARD_MB=${NLLB_RAM_HARD_MB:-1000}
+    - NLLB_SWAP_HARD_MB=${NLLB_SWAP_HARD_MB:-0}
+    - NLLB_MONITOR_INTERVAL_S=${NLLB_MONITOR_INTERVAL_S:-5.0}
+    - NLLB_MONITOR_FAST_INTERVAL_S=${NLLB_MONITOR_FAST_INTERVAL_S:-0.25}
+    - NLLB_MONITOR_LOG_INTERVAL_S=${NLLB_MONITOR_LOG_INTERVAL_S:-30.0}
   volumes:
     - ../.docker-volumes/nllb-cache:/home/nllb/.cache:rw
+    - ../.docker-volumes/nllb-api-key:/run/secrets/nllb-api-key:ro
+    - ../.docker-volumes/nllb-data:/data:rw
   restart: unless-stopped
   read_only: true
   tmpfs:
@@ -46,7 +70,7 @@ x-nllb-common: &nllb-common
         "CMD",
         "python",
         "-c",
-        "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        "import ssl; import urllib.request; ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE; urllib.request.urlopen('https://localhost:8000/health', context=ctx)",
       ]
     interval: 30s
     timeout: 10s
@@ -62,6 +86,7 @@ services:
       dockerfile: docker/Dockerfile.nllb
       args:
         TORCH_VARIANT: cpu
+        GIT_COMMIT_DATE: ${GIT_COMMIT_DATE:-}
     profiles: ["", "cpu"]
 
   # ── GPU variant (--profile gpu) ──────────────────────────────────
@@ -71,7 +96,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.nllb
       args:
-        TORCH_VARIANT: cu121
+        TORCH_VARIANT: cu128
+        GIT_COMMIT_DATE: ${GIT_COMMIT_DATE:-}
     profiles: ["gpu"]
     deploy:
       resources:
