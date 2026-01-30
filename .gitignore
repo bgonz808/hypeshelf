@@ -117,6 +117,9 @@ CLAUDE.md
 # Translation API probe (dry-run scratch data, not for repo)
 .translation-probe/
 
+# Docker bind-mount volumes (model cache, persists between runs)
+.docker-volumes/
+
 # Playwright MCP screenshots
 .playwright-mcp/
 

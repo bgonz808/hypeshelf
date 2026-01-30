@@ -1,43 +1,53 @@
 # NLLB-600M Translation Server
 #
 # Serves Facebook's NLLB-200 (600M distilled) model via FastAPI.
-# CPU by default. For GPU, uncomment the CUDA section below.
 #
-# Usage:
-#   docker build -f docker/Dockerfile.nllb -t hypeshelf-nllb .
-#   docker run -p 8000:8000 -v nllb-cache:/root/.cache hypeshelf-nllb
+# Build arg TORCH_VARIANT selects CPU or CUDA wheel:
+#   --build-arg TORCH_VARIANT=cpu   (default, ~200 MB)
+#   --build-arg TORCH_VARIANT=cu121 (CUDA 12.1, ~2 GB)
 #
-# Model is downloaded on first run (~1.2 GB) and cached in the Docker volume.
+# Security: runs as non-root user, minimal filesystem writes.
+# Model is downloaded on first run (~1.2 GB) and cached via bind mount.
 
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# System deps for sentencepiece
+ARG TORCH_VARIANT=cpu
+
+# System deps for sentencepiece (build-essential needed for compile, removed after)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-# Python deps
+# Torch — installed first with variant-specific index
+RUN pip install --no-cache-dir \
+    torch==2.5.1 --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
+
+# Remaining Python deps (standard PyPI)
 RUN pip install --no-cache-dir \
     transformers==4.47.1 \
     sentencepiece==0.2.0 \
     fastapi==0.115.6 \
-    uvicorn==0.34.0 \
-    torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+    uvicorn==0.34.0
 
-# ── For GPU support, replace the torch line above with: ──
-# RUN pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
-# And use the nvidia runtime in docker-compose:
-#   runtime: nvidia
-#   environment:
-#     - NVIDIA_VISIBLE_DEVICES=all
+# Remove build tools (no longer needed at runtime)
+RUN apt-get purge -y --auto-remove build-essential && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY docker/nllb-server.py /app/server.py
+
+# Non-root user for runtime
+RUN groupadd -r nllb && useradd -r -g nllb -d /home/nllb -m nllb
+# Pre-create cache dir owned by nllb user
+RUN mkdir -p /home/nllb/.cache && chown -R nllb:nllb /home/nllb
+
+USER nllb
 
 ENV MODEL_NAME="facebook/nllb-200-distilled-600M"
 ENV HOST="0.0.0.0"
 ENV PORT="8000"
+ENV HF_HOME="/home/nllb/.cache/huggingface"
 
 EXPOSE 8000
 

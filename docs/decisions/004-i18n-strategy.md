@@ -484,53 +484,172 @@ Commits implementing this ADR, recorded as completed:
 
 ### Phase 5: Hybrid Auto-Translation Infrastructure
 
-**Commit**: (this commit) — `feat(i18n): add hybrid auto-translation infrastructure (ADR-004 Phase 5)`
+**Commit 1**: `2a257db` — `feat(i18n): add hybrid auto-translation infrastructure (ADR-004 Phase 5)`
 
-Hybrid translation system with graceful degradation. Newcomers without Docker/GPU get Dictionary + MyMemory (fully functional). Full stack adds local NLLB model and LM Studio validation.
+Initial hybrid translation system with graceful degradation. Newcomers without Docker/GPU get Dictionary + MyMemory (fully functional). Full stack adds local NLLB model and LM Studio validation.
 
-**Provider priority chain**:
+**Commit 2**: (this commit) — `feat(i18n): add GPU auto-detect, context stuffing, LLM disambiguation, Docker hardening`
 
-1. **Dictionary** — curated translations for ~15 polysemous terms (Rock, Metal, Country, etc.). Domain inferred from key namespace (`genres.*` → music). Single matching sense = high confidence (0.95), done. Ambiguous = fall through.
-2. **Local NLLB-600M** (localhost:8000, Docker) — Facebook's distilled model via FastAPI container. CPU by default, GPU optional. Lazy port probe, cached for session.
-3. **MyMemory** (cloud fallback) — 50K chars/day free tier. Back-translation sanity check for strings ≥ 3 words.
-4. **LM Studio** (localhost:1234, optional) — Scores winning translation via chat completions API. Flags low quality with confidence penalty.
+Major enhancements to the Phase 5 infrastructure: automatic GPU detection and Docker profile routing, context-stuffing for MT disambiguation, LLM-as-judge disambiguation for polysemous terms, `Intl.Segmenter`-based hint stripping for CJK, and comprehensive Docker security hardening.
 
-**New files**:
+#### Provider Priority Chain
 
-- `scripts/lib/port-checker.ts` — TCP probe + HTTP health checks for local services (zero deps, `node:net` + `fetch`)
-- `scripts/lib/dictionary-provider.ts` — Curated dictionary with domain-aware lookups for polysemous UI terms
-- `scripts/lib/local-model-provider.ts` — NLLB client with BCP-47 → Flores-200 code mapping, 30s inference timeout
-- `scripts/lib/lm-studio-validator.ts` — Post-processing validator (NOT a TranslationProvider), normalizes 1-10 scores to 0..1
-- `scripts/lib/translation-strategy.ts` — Orchestrator: decides provider per key, computes confidence composite, builds audit trail
-- `scripts/i18n-translate-batch.ts` — Headless batch script: `--locale=es`, `--dry-run`, `--force`, service availability table, per-key audit trail
-- `docker/docker-compose.i18n.yml` + `docker/Dockerfile.nllb` + `docker/nllb-server.py` — NLLB container with FastAPI, model cached in Docker volume
+```
+1. Dictionary (curated, ~15 polysemous terms)
+   → Domain inferred from key namespace (genres.* → music)
+   → Single domain match = 0.95 confidence, done
+   → Ambiguous/missing = fall through to MT
 
-**Modified files**:
+2. Local NLLB-600M (localhost:8000, Docker)
+   → Context-stuffed: "Rock [music genre]" for short polysemous strings
+   → Intl.Segmenter strips absorbed hints from CJK output
+   → If dictionary + NLLB agree → 0.97 confidence
 
-- `scripts/lib/translation-providers.ts` — Added optional `context?: { key?: string }` to `TranslationProvider.translate()` (backward compatible)
-- `scripts/lib/message-manager.ts` — Extended `ProvenanceEntry` with `confidence`, `translationMethod`, `report` fields (backward compatible)
-- `package.json` — Added `i18n:translate`, `i18n:services:up`, `i18n:services:down` scripts
+3. MyMemory API (cloud fallback, 50K chars/day free)
+   → Same context-stuffing applied
+   → Back-translation sanity check for strings ≥ 3 words
 
-**Architecture decisions**:
+4. LM Studio (localhost:1234, optional)
+   → Disambiguation judge: ranks dictionary vs MT candidates
+   → Validation scorer: rates winning translation 1-10
+   → Feeds LLM the dictionary senses, key namespace, and all
+     candidate translations for informed ranking
+```
 
-- Zero new npm dependencies — all new code uses `node:net`, global `fetch`, and existing deps
-- Dictionary is embedded as a TypeScript const (no external JSON file to load/parse)
-- `TranslationStrategy` does NOT modify `createProviderChain()` — existing `i18n-extract.ts` keeps working unchanged
-- NLLB Yiddish uses Hebrew model code (`heb_Hebr`) — closest available in NLLB's Flores-200 taxonomy
-- Confidence scoring: dictionary 0.95, NLLB 0.7, MyMemory 0.6, adjusted by back-translation quality and LM Studio validation
+Newcomers without Docker/GPU/LM Studio get: Dictionary + MyMemory (still functional).
 
-**Deferred items**:
+#### GPU Auto-Detection and Docker Bootstrap
+
+The batch script (`i18n-translate-batch.ts`) automatically:
+
+1. **Detects GPU** via `nvidia-smi` (name, VRAM)
+2. **Probes Docker GPU passthrough** via `docker run --gpus all nvidia/cuda:...`
+3. **Auto-launches** the correct Docker profile:
+   - GPU detected + Docker GPU works → `--profile gpu` (CUDA torch, GPU inference ~0.2s)
+   - No GPU or no Docker GPU → default CPU profile (CPU inference ~2-5s)
+   - No Docker at all → skips, falls back to cloud
+4. **Polls health endpoint** until model loads (up to 3 minutes)
+5. **Pre-creates bind-mount directory** to prevent Docker creating it as root
+
+```
+$ npm run i18n:translate -- --locale=zh --dry-run
+Detecting hardware...
+  GPU: NVIDIA GeForce RTX 3080 Ti (12288 MB) — Docker GPU: yes
+  NLLB offline — launching Docker container (GPU)...
+  Container started. Waiting for model to load...
+  NLLB ready (7s).
+```
+
+#### Context Stuffing for MT Disambiguation
+
+Short polysemous strings (≤ 2 words with multiple dictionary senses) are bracket-stuffed before sending to any MT provider:
+
+- Input: `"Rock"` with key `genres.rock`
+- Stuffed: `"Rock [music genre]"` (hint derived from namespace)
+- NLLB output: `"摇滚音乐类型"` (rock-music-genre-type — hint absorbed)
+- Stripped: `"摇滚"` (via `Intl.Segmenter` word extraction)
+
+Two stripping strategies handle different MT behaviors:
+
+1. **Bracket regex** — when MT preserves brackets (e.g., `"聚会 [音乐类型]"` → `"聚会"`)
+2. **`Intl.Segmenter` extraction** — when MT absorbs the hint into a phrase (e.g., `"摇滚音乐类型"` → take first N word-segments matching original word count → `"摇滚"`)
+
+Namespace-to-hint mapping: `genres` → "music genre", `filters` → "UI filter", `auth` → "authentication", etc.
+
+#### LLM Disambiguation (LM Studio)
+
+When dictionary and context-stuffed MT disagree, and LM Studio is online, the LLM acts as a disambiguation judge (not a translator):
+
+```
+Prompt to LLM:
+  "Rock" needs translating to Simplified Chinese.
+  i18n key: "genres.rock" (namespace: "genres")
+
+  Polysemous senses:
+    1. [music] noun: music genre
+    2. [general] noun: stone, boulder
+    3. [general] verb: to sway, move
+
+  Candidate translations:
+    A. "摇滚" (from: dictionary, genres domain)
+    B. "岩石" (from: nllb-local)
+
+  Which candidate is best for a "genres" UI label?
+  → Reply JSON: {"winner": "A", "reasoning": "..."}
+```
+
+Result: `method: "ensemble"`, confidence 0.92 (LLM-judged). Falls back to dictionary if LLM unavailable or unparseable.
+
+#### Docker Security Hardening
+
+| Control                     | Implementation                                                |
+| --------------------------- | ------------------------------------------------------------- |
+| **Localhost-only**          | `127.0.0.1:8000:8000` — not exposed on LAN                    |
+| **Drop all caps**           | `cap_drop: ALL`, only `NET_BIND_SERVICE` re-added             |
+| **Read-only rootfs**        | `read_only: true` with `tmpfs: /tmp:256m` for runtime scratch |
+| **No privilege escalation** | `security_opt: no-new-privileges:true`                        |
+| **Non-root user**           | `USER nllb` in Dockerfile (dedicated system user)             |
+| **Build tools purged**      | `apt-get purge build-essential` after pip install (-336 MB)   |
+| **Isolated network**        | `i18n-internal` bridge network                                |
+| **Profile-based GPU/CPU**   | `--profile gpu` selects CUDA variant; default is CPU          |
+
+#### Persistence via Bind Mount
+
+Model cache persisted in `.docker-volumes/nllb-cache/` (gitignored, repo-local):
+
+| Asset                   | Size    | Persists across                                  |
+| ----------------------- | ------- | ------------------------------------------------ |
+| Docker image (GPU/CUDA) | ~5.8 GB | `docker compose down` ✓, `docker system prune` ✗ |
+| Docker image (CPU)      | ~2.5 GB | same                                             |
+| Model cache (NLLB-600M) | ~4.7 GB | `down` ✓, `prune` ✓, `rm .docker-volumes` ✗      |
+
+HuggingFace model is downloaded once on first run and cached. Subsequent container restarts reuse the cache — model loads in seconds. The bind mount lives in the repo directory (not Docker's managed volume area) so it survives `docker volume prune` and is easy to find/delete.
+
+Migration from named Docker volumes to bind mounts: used a throwaway Alpine container to `cp -a` from the named volume (opaque on Windows/WSL2) to the repo-local bind path.
+
+#### Confidence Scoring Matrix
+
+| Scenario                                           | Confidence | Method     |
+| -------------------------------------------------- | ---------- | ---------- |
+| Dictionary hit, NLLB agrees                        | 0.97       | dictionary |
+| Dictionary hit, no NLLB                            | 0.95       | dictionary |
+| LLM picks winner from dict vs MT                   | 0.92       | ensemble   |
+| NLLB only, no dictionary entry                     | 0.70       | mt-local   |
+| MyMemory + good back-translation (≥0.6 similarity) | 0.75       | mt-cloud   |
+| MyMemory baseline                                  | 0.60       | mt-cloud   |
+| MyMemory + poor back-translation (<0.3)            | 0.50       | mt-cloud   |
+
+LM Studio validation pass (when available) adjusts ±0.1-0.15 on top.
+
+#### New/Modified Files (this commit)
+
+- `scripts/lib/port-checker.ts` — Added `detectGpu()`: `nvidia-smi` probe + Docker GPU passthrough check
+- `scripts/lib/lm-studio-validator.ts` — Added `disambiguateTranslation()`: feeds dictionary senses + candidates to LLM for ranking
+- `scripts/lib/translation-strategy.ts` — Context-stuffing (`bracketStuff`), `Intl.Segmenter`-based hint stripping, LLM disambiguation flow, namespace hint mapping
+- `scripts/i18n-translate-batch.ts` — GPU auto-detect, Docker auto-launch with profile routing, bind-mount directory pre-creation, health polling
+- `docker/Dockerfile.nllb` — Non-root user (`nllb`), `HF_HOME` env var, build-essential purge, `USER` directive
+- `docker/docker-compose.i18n.yml` — YAML anchor for shared config, localhost binding, `cap_drop: ALL`, `read_only`, `no-new-privileges`, `tmpfs`, bridge network, profile-based CPU/GPU
+- `.gitignore` — Added `.docker-volumes/`
+- `package.json` — Added `i18n:services:up:gpu` script
+
+#### Deferred Items
 
 - CI workflow (`i18n-translate.yml`) for automated PR creation on `en.json` changes
-- Full Wiktionary dump parsing for dictionary expansion
-- Opus-MT as alternative local model (lighter weight, different language pairs)
-- Argos Translate integration (offline, LGPL)
+- Full Wiktionary dump parsing for dictionary expansion beyond 15 terms
+- Opus-MT as alternative local model (lighter weight, ~300 MB per language pair)
+- Argos Translate integration (offline, LGPL, ~100 MB per pair)
+- Sibling batching (comma-delimited namespace groups) — currently per-key with bracket hints
+- `translation-overrides.json` manual override map for terms that resist all automated strategies
 
-**Self-hosting findings**:
+#### Self-Hosting Findings
 
-- NLLB-200 distilled 600M: ~1.2 GB download, ~2 GB RAM, CPU inference ~2-5s/sentence
-- Opus-MT: ~300 MB per language pair, faster CPU inference, but separate model per pair
-- Argos Translate: ~100 MB per pair, LGPL, Python package with optional GUI
+| Model                   | Size                          | RAM     | CPU Inference    | GPU Inference  | License      |
+| ----------------------- | ----------------------------- | ------- | ---------------- | -------------- | ------------ |
+| NLLB-200 distilled 600M | ~1.2 GB model, ~4.7 GB cached | ~2 GB   | ~2-5s/sentence   | ~0.2s/sentence | CC-BY-NC-4.0 |
+| Opus-MT                 | ~300 MB/pair                  | ~1 GB   | ~0.5-1s/sentence | N/A (CPU-only) | MIT          |
+| Argos Translate         | ~100 MB/pair                  | ~500 MB | ~1-2s/sentence   | Optional       | LGPL         |
+
+Docker image sizes: GPU (CUDA 12.1) ~5.8 GB, CPU ~2.5 GB. Difference is the CUDA torch wheel (~780 MB) + NVIDIA runtime libs (~1.8 GB).
 
 ### Related Commits (same session)
 

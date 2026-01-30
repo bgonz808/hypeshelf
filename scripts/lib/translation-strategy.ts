@@ -18,9 +18,86 @@ import {
 } from "./translation-providers.js";
 import {
   validateTranslation,
+  disambiguateTranslation,
   type ValidationResult,
+  type DisambiguationCandidate,
 } from "./lm-studio-validator.js";
 import { probeAllServices } from "./port-checker.js";
+
+// ── Context Stuffing ────────────────────────────────────────────────
+
+/** Namespace → short hint for bracket-stuffing polysemous short strings */
+const NAMESPACE_HINTS: Record<string, string> = {
+  genres: "music genre",
+  filters: "UI filter",
+  common: "UI label",
+  auth: "authentication",
+  admin: "admin action",
+  recommendations: "recommendation",
+  home: "homepage",
+  metadata: "page metadata",
+};
+
+/**
+ * Wrap a short string with a bracket hint derived from its i18n key namespace.
+ * e.g. "Rock" with key "genres.rock" → "Rock [music genre]"
+ */
+function bracketStuff(text: string, key: string): string {
+  const namespace = key.split(".")[0] ?? "";
+  const hint = NAMESPACE_HINTS[namespace];
+  if (!hint) return text;
+  return `${text} [${hint}]`;
+}
+
+/**
+ * Strip bracket hints and locale-specific bracket variants from MT output.
+ * Handles: [...], （...）, 「...」, «...», „...", ‹...›, ‚...'
+ */
+const BRACKET_STRIP_RE = /\s*[\[（(「『«„‹‚].*?[\]）)」』»"›']?\s*$/;
+
+/**
+ * Strip the context hint from an MT result.
+ *
+ * Strategy:
+ *   1. Try regex bracket strip (works when MT preserved brackets)
+ *   2. If no brackets found and the original was short (≤2 words),
+ *      use Intl.Segmenter to extract the leading content words,
+ *      trimming the hint that got absorbed into the translation.
+ *      Compares word count: original has N words, so take first N
+ *      segments from the MT output.
+ */
+function stripBracketHint(
+  text: string,
+  originalWordCount: number,
+  locale: string
+): string {
+  // Step 1: Try bracket regex
+  const bracketStripped = text.replace(BRACKET_STRIP_RE, "").trim();
+  if (bracketStripped !== text.trim() && bracketStripped.length > 0) {
+    return bracketStripped;
+  }
+
+  // Step 2: Segmenter-based extraction for CJK and other locales
+  // where brackets were absorbed into the translation
+  if (originalWordCount <= 2) {
+    try {
+      const segmenter = new Intl.Segmenter(locale, { granularity: "word" });
+      const segments = Array.from(segmenter.segment(text))
+        .filter((s) => s.isWordLike)
+        .map((s) => s.segment);
+
+      // If MT produced more word-segments than the original had words,
+      // the extra segments are likely the absorbed hint
+      if (segments.length > originalWordCount && originalWordCount > 0) {
+        return segments.slice(0, originalWordCount).join("");
+      }
+    } catch {
+      // Intl.Segmenter not available or locale not supported — return as-is
+    }
+  }
+
+  return text.trim();
+}
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -91,21 +168,23 @@ export class TranslationStrategy {
     let similarity: number | undefined;
     let dictionarySenses: EnhancedTranslationResult["dictionarySenses"];
 
-    // ── Step 1: Dictionary (short words, ≤ 2 tokens) ──────────────
+    // ── Step 1: Gather candidates from dictionary + MT ────────────
+    let dictTranslation: string | undefined;
+
     if (wordCount <= 2 && this.dictionary.has(enValue)) {
       const senses = this.dictionary.getSenses(enValue);
       dictionarySenses = senses;
       report.push(`Dictionary: ${senses?.length ?? 0} senses found`);
 
       try {
-        translation = await this.dictionary.translate(enValue, "en", locale, {
-          key,
-        });
-        method = "dictionary";
-        provider = "dictionary";
-        confidence = 0.95; // curated = high confidence
+        dictTranslation = await this.dictionary.translate(
+          enValue,
+          "en",
+          locale,
+          { key }
+        );
         report.push(
-          `Dictionary hit: "${translation}" (domain from key "${key}")`
+          `Dictionary hit: "${dictTranslation}" (domain from key "${key}")`
         );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -113,40 +192,105 @@ export class TranslationStrategy {
       }
     }
 
-    // ── Step 2: Local NLLB (if available and no dictionary hit) ────
-    if (!translation && services.nllb) {
-      try {
-        translation = await this.localModel.translate(enValue, "en", locale);
-        method = "mt-local";
-        provider = "nllb-local";
-        confidence = 0.7;
-        report.push(`NLLB local: "${translation}"`);
+    // ── Step 2: Local NLLB (if available) ─────────────────────────
+    let mtTranslation: string | undefined;
+    let mtProvider = "";
 
-        // Cross-check with dictionary if the word is known
-        if (dictionarySenses && dictionarySenses.length > 0) {
-          try {
-            const dictTranslation = await this.dictionary.translate(
-              enValue,
-              "en",
-              locale,
-              { key }
-            );
-            if (dictTranslation === translation) {
-              confidence = 0.9; // local MT agrees with dictionary
-              report.push("NLLB agrees with dictionary → confidence boost");
-            } else {
-              report.push(
-                `NLLB differs from dictionary ("${dictTranslation}") — using NLLB`
-              );
-            }
-          } catch {
-            // Dictionary didn't have a match for this domain, that's fine
+    if (services.nllb) {
+      try {
+        // Context-stuff short strings so NLLB can disambiguate
+        const needsHint =
+          wordCount <= 2 && dictionarySenses && dictionarySenses.length > 1;
+        const mtInput = needsHint ? bracketStuff(enValue, key) : enValue;
+        if (needsHint) {
+          report.push(`Context-stuffed for NLLB: "${mtInput}"`);
+        }
+
+        let raw = await this.localModel.translate(mtInput, "en", locale);
+
+        // Strip bracket hint remnants from the translation
+        if (needsHint) {
+          const stripped = stripBracketHint(raw, wordCount, locale);
+          if (stripped && stripped !== raw) {
+            report.push(`Stripped hint: "${raw}" → "${stripped}"`);
+            raw = stripped;
           }
         }
+
+        mtTranslation = raw;
+        mtProvider = "nllb-local";
+        report.push(`NLLB local: "${mtTranslation}"`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         report.push(`NLLB unavailable: ${msg}`);
       }
+    }
+
+    // ── Step 2b: LLM disambiguation (when we have dictionary senses + MT) ─
+    if (
+      dictionarySenses &&
+      dictionarySenses.length > 0 &&
+      dictTranslation &&
+      mtTranslation &&
+      dictTranslation !== mtTranslation &&
+      services.lmStudio
+    ) {
+      // Build candidates: dictionary pick + MT result
+      const candidates: DisambiguationCandidate[] = [
+        {
+          translation: dictTranslation,
+          source: `dictionary (${key.split(".")[0]} domain)`,
+        },
+        { translation: mtTranslation, source: mtProvider },
+      ];
+
+      report.push("LLM disambiguation: dictionary vs MT disagree");
+
+      const result = await disambiguateTranslation(
+        enValue,
+        locale,
+        key,
+        dictionarySenses,
+        candidates
+      );
+
+      if (result.available && result.winnerIndex >= 0) {
+        const winner = candidates[result.winnerIndex]!;
+        translation = winner.translation;
+        method = "ensemble";
+        provider = `ensemble(${winner.source})`;
+        confidence = 0.92; // LLM-judged disambiguation
+        report.push(
+          `LLM picked "${winner.translation}" (${winner.source}): ${result.reasoning}`
+        );
+      } else {
+        // LLM unavailable or unparseable — fall back to dictionary (curated > MT)
+        report.push(
+          result.available
+            ? `LLM disambiguation failed: ${result.reasoning} — using dictionary`
+            : "LLM became unavailable — using dictionary"
+        );
+        translation = dictTranslation;
+        method = "dictionary";
+        provider = "dictionary";
+        confidence = 0.95;
+      }
+    } else if (dictTranslation) {
+      // No MT disagreement or no LLM — dictionary wins
+      translation = dictTranslation;
+      method = "dictionary";
+      provider = "dictionary";
+      confidence = 0.95;
+      if (mtTranslation && mtTranslation === dictTranslation) {
+        confidence = 0.97;
+        report.push("NLLB agrees with dictionary → high confidence");
+      }
+    } else if (mtTranslation) {
+      // No dictionary entry — MT is the only candidate
+      translation = mtTranslation;
+      method = "mt-local";
+      provider = mtProvider;
+      confidence = 0.7;
     }
 
     // ── Step 3: MyMemory cloud (fallback) ─────────────────────────
@@ -156,7 +300,25 @@ export class TranslationStrategy {
       }
 
       try {
-        translation = await this.cloudProvider.translate(enValue, "en", locale);
+        // Context-stuff short polysemous strings for cloud MT too
+        const needsHint =
+          wordCount <= 2 && dictionarySenses && dictionarySenses.length > 1;
+        const cloudInput = needsHint ? bracketStuff(enValue, key) : enValue;
+        if (needsHint) {
+          report.push(`Context-stuffed for MyMemory: "${cloudInput}"`);
+        }
+
+        let raw = await this.cloudProvider.translate(cloudInput, "en", locale);
+
+        if (needsHint) {
+          const stripped = stripBracketHint(raw, wordCount, locale);
+          if (stripped && stripped !== raw) {
+            report.push(`Stripped hint: "${raw}" → "${stripped}"`);
+            raw = stripped;
+          }
+        }
+
+        translation = raw;
         method = "mt-cloud";
         provider = "mymemory";
         confidence = 0.6;

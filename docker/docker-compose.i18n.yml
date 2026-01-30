@@ -1,45 +1,87 @@
 # i18n Translation Services
 #
-# Usage:
+# CPU (default):
 #   docker compose -f docker/docker-compose.i18n.yml up -d
-#   docker compose -f docker/docker-compose.i18n.yml down
 #
-# NLLB model (~1.2 GB) is downloaded on first run and cached in a volume.
-# CPU by default. For GPU, uncomment the deploy section below.
+# GPU (NVIDIA):
+#   docker compose -f docker/docker-compose.i18n.yml --profile gpu up -d
+#
+# The GPU profile builds with CUDA torch and reserves the GPU device.
+# Only one of nllb (CPU) or nllb-gpu runs — they share port 8000.
+#
+# Model (~1.2 GB) is downloaded on first run and persisted in
+# .docker-volumes/nllb-cache/ (gitignored, repo-local bind mount).
+#
+# Security:
+#   - Localhost-only port binding (127.0.0.1)
+#   - All default capabilities dropped; only NET_BIND_SERVICE re-added
+#   - Read-only root filesystem (tmpfs for /tmp)
+#   - No privilege escalation
+#   - Non-root user (nllb) inside container
+#   - No access to Docker socket or host network
+
+x-nllb-common: &nllb-common
+  ports:
+    - "127.0.0.1:8000:8000"
+  environment:
+    - MODEL_NAME=${NLLB_MODEL:-facebook/nllb-200-distilled-600M}
+    - HF_HOME=/home/nllb/.cache/huggingface
+  volumes:
+    - ../.docker-volumes/nllb-cache:/home/nllb/.cache:rw
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp:size=256m
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  cap_add:
+    - NET_BIND_SERVICE
+  networks:
+    - i18n-internal
+  healthcheck:
+    test:
+      [
+        "CMD",
+        "python",
+        "-c",
+        "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+      ]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 120s
 
 services:
+  # ── CPU variant (default) ────────────────────────────────────────
   nllb:
+    <<: *nllb-common
     build:
       context: ..
       dockerfile: docker/Dockerfile.nllb
-    ports:
-      - "8000:8000"
-    environment:
-      - MODEL_NAME=${NLLB_MODEL:-facebook/nllb-200-distilled-600M}
-    volumes:
-      - nllb-cache:/root/.cache
-    restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s # model download + load time
+      args:
+        TORCH_VARIANT: cpu
+    profiles: ["", "cpu"]
 
-    # ── GPU support (uncomment for NVIDIA GPU) ──
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+  # ── GPU variant (--profile gpu) ──────────────────────────────────
+  nllb-gpu:
+    <<: *nllb-common
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.nllb
+      args:
+        TORCH_VARIANT: cu121
+    profiles: ["gpu"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
-volumes:
-  nllb-cache:
+networks:
+  i18n-internal:
+    driver: bridge
+    internal: false # needs outbound for HuggingFace model download on first run

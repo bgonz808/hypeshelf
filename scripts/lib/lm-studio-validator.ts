@@ -146,6 +146,152 @@ function parseValidationResponse(content: string): ValidationResult {
   }
 }
 
+// ── Disambiguation ──────────────────────────────────────────────────
+
+export interface DisambiguationCandidate {
+  translation: string;
+  source: string; // e.g. "dictionary (music)", "NLLB", "MyMemory"
+}
+
+export interface DisambiguationResult {
+  /** Index of the winning candidate (0-based), or -1 if unavailable */
+  winnerIndex: number;
+  /** LLM's reasoning */
+  reasoning: string;
+  available: boolean;
+}
+
+/**
+ * Ask the LLM to rank translation candidates for a polysemous term.
+ *
+ * Feeds the LLM:
+ *   - The original English token and its i18n key (for domain context)
+ *   - Dictionary senses (all known meanings)
+ *   - Candidate translations from different providers
+ *   - An MT attempt with context stuffing (if available)
+ *
+ * The LLM acts as a disambiguation judge, not a translator.
+ */
+export async function disambiguateTranslation(
+  original: string,
+  locale: string,
+  key: string,
+  senses: Array<{ pos: string; gloss: string; domain: string }>,
+  candidates: DisambiguationCandidate[]
+): Promise<DisambiguationResult> {
+  if (cachedAvailable === null) {
+    cachedAvailable = await probeLmStudio();
+  }
+  if (!cachedAvailable) {
+    return { winnerIndex: -1, reasoning: "", available: false };
+  }
+
+  const localeName = LOCALE_NAMES[locale] ?? locale;
+  const namespace = key.split(".")[0] ?? "";
+
+  const sensesBlock = senses
+    .map((s, i) => `  ${i + 1}. [${s.domain}] ${s.pos}: ${s.gloss}`)
+    .join("\n");
+
+  const candidatesBlock = candidates
+    .map(
+      (c, i) =>
+        `  ${String.fromCharCode(65 + i)}. "${c.translation}" (from: ${c.source})`
+    )
+    .join("\n");
+
+  const prompt = [
+    `You are a translation quality judge. A UI application needs to translate the English token "${original}" into ${localeName}.`,
+    ``,
+    `i18n key: "${key}" (namespace: "${namespace}")`,
+    ``,
+    `This word is polysemous. Known senses:`,
+    sensesBlock,
+    ``,
+    `Candidate translations:`,
+    candidatesBlock,
+    ``,
+    `Given that this is a "${namespace}" label in a UI context, which candidate (A, B, C...) is the best translation?`,
+    ``,
+    `Reply with ONLY a JSON object: {"winner": "<letter>", "reasoning": "<one sentence>"}`,
+  ].join("\n");
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+
+    const res = await fetch(LM_STUDIO_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
+        max_tokens: 150,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      return {
+        winnerIndex: -1,
+        reasoning: `HTTP ${res.status}`,
+        available: true,
+      };
+    }
+
+    const json = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+
+    const content = json.choices?.[0]?.message?.content ?? "";
+    return parseDisambiguationResponse(content, candidates.length);
+  } catch {
+    cachedAvailable = false;
+    return { winnerIndex: -1, reasoning: "", available: false };
+  }
+}
+
+function parseDisambiguationResponse(
+  content: string,
+  candidateCount: number
+): DisambiguationResult {
+  try {
+    const jsonMatch = content.match(/\{[^}]+\}/);
+    if (!jsonMatch) {
+      return {
+        winnerIndex: -1,
+        reasoning: "Could not parse LLM response",
+        available: true,
+      };
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]) as {
+      winner?: string;
+      reasoning?: string;
+    };
+
+    const letter = (parsed.winner ?? "").trim().toUpperCase();
+    const index = letter.charCodeAt(0) - 65; // A=0, B=1, C=2
+    if (isNaN(index) || index < 0 || index >= candidateCount) {
+      return {
+        winnerIndex: -1,
+        reasoning: parsed.reasoning ?? "Invalid winner",
+        available: true,
+      };
+    }
+
+    return {
+      winnerIndex: index,
+      reasoning: parsed.reasoning ?? "",
+      available: true,
+    };
+  } catch {
+    return { winnerIndex: -1, reasoning: "JSON parse error", available: true };
+  }
+}
+
 /**
  * Reset the cached availability state (useful for testing).
  */

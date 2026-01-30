@@ -47,6 +47,7 @@
     "spellcheck": "cspell \"messages/**/*.json\" \"src/**/*.{ts,tsx}\"",
     "i18n:translate": "npx tsx scripts/i18n-translate-batch.ts",
     "i18n:services:up": "docker compose -f docker/docker-compose.i18n.yml up -d",
+    "i18n:services:up:gpu": "docker compose -f docker/docker-compose.i18n.yml --profile gpu up -d",
     "i18n:services:down": "docker compose -f docker/docker-compose.i18n.yml down"
   },
   "dependencies": {

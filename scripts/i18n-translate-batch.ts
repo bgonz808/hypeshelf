@@ -30,7 +30,8 @@ import {
   TranslationStrategy,
   type EnhancedTranslationResult,
 } from "./lib/translation-strategy.js";
-import { probeAllServices } from "./lib/port-checker.js";
+import { probeAllServices, detectGpu } from "./lib/port-checker.js";
+import { execSync } from "node:child_process";
 
 // ── CLI Args ────────────────────────────────────────────────────────
 
@@ -106,10 +107,62 @@ const RATE_LIMIT_MS = 500; // delay between API calls
 async function main(): Promise<void> {
   const opts = parseArgs();
 
-  // ── Probe services ──────────────────────────────────────────────
-  console.log("Probing translation services...\n");
-  const services = await probeAllServices();
+  // ── GPU detection ──────────────────────────────────────────────
+  console.log("Detecting hardware...\n");
+  const gpu = await detectGpu();
+  if (gpu.available) {
+    console.log(
+      `  GPU: ${gpu.name} (${gpu.vramMb} MB) — Docker GPU: ${gpu.dockerGpu ? "yes" : "no"}`
+    );
+  } else {
+    console.log("  GPU: not detected (CPU mode)");
+  }
 
+  // ── Auto-launch NLLB if Docker available but service not running ─
+  let services = await probeAllServices();
+
+  if (!services.nllb) {
+    const hasDocker = isDockerAvailable();
+    if (hasDocker) {
+      const profile = gpu.available && gpu.dockerGpu ? "gpu" : "";
+      const profileFlag = profile ? `--profile ${profile}` : "";
+      const composeFile = path.resolve(
+        __dirname,
+        "..",
+        "docker",
+        "docker-compose.i18n.yml"
+      );
+      const mode = profile === "gpu" ? "GPU" : "CPU";
+      console.log(`\n  NLLB offline — launching Docker container (${mode})...`);
+
+      // Ensure bind-mount directory exists (prevents Docker creating it as root)
+      const volumeDir = path.resolve(
+        __dirname,
+        "..",
+        ".docker-volumes",
+        "nllb-cache"
+      );
+      fs.mkdirSync(volumeDir, { recursive: true });
+
+      try {
+        execSync(
+          `docker compose -f "${composeFile}" ${profileFlag} up -d --build`.trim(),
+          { stdio: "pipe", timeout: 300_000 }
+        );
+        console.log("  Container started. Waiting for model to load...");
+        // Poll health endpoint — model download + load can take a while
+        services = await waitForNllb(180_000);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(`  Docker launch failed: ${msg}`);
+        console.log("  Continuing without local NLLB (cloud fallback).\n");
+      }
+    } else {
+      console.log("\n  Docker not available — skipping NLLB auto-launch.");
+    }
+  }
+
+  console.log("");
   console.log("┌─────────────────────────┬───────────┐");
   console.log("│ Service                 │ Status    │");
   console.log("├─────────────────────────┼───────────┤");
@@ -246,6 +299,37 @@ async function main(): Promise<void> {
 
 function pad(s: string, len: number): string {
   return s.padEnd(len);
+}
+
+/** Check if Docker CLI is available */
+function isDockerAvailable(): boolean {
+  try {
+    execSync("docker info", { stdio: "pipe", timeout: 5_000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Poll NLLB health endpoint until available or timeout */
+async function waitForNllb(
+  timeoutMs: number
+): Promise<{ nllb: boolean; lmStudio: boolean }> {
+  const start = Date.now();
+  const poll = 3_000; // check every 3s
+  while (Date.now() - start < timeoutMs) {
+    const s = await probeAllServices();
+    if (s.nllb) {
+      console.log(
+        `  NLLB ready (${Math.round((Date.now() - start) / 1000)}s).`
+      );
+      return s;
+    }
+    await delay(poll);
+    process.stdout.write(".");
+  }
+  console.log("\n  NLLB did not become ready within timeout.");
+  return probeAllServices();
 }
 
 main().catch((err) => {

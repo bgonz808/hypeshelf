@@ -9,6 +9,7 @@
  */
 
 import * as net from "node:net";
+import { execFile } from "node:child_process";
 
 // ── TCP Probe ───────────────────────────────────────────────────────
 
@@ -89,4 +90,72 @@ export async function probeAllServices(): Promise<{
 }> {
   const [nllb, lmStudio] = await Promise.all([probeNllb(), probeLmStudio()]);
   return { nllb, lmStudio };
+}
+
+// ── GPU Detection ───────────────────────────────────────────────────
+
+export interface GpuInfo {
+  available: boolean;
+  name?: string;
+  vramMb?: number;
+  /** Whether NVIDIA Container Toolkit works (docker --gpus) */
+  dockerGpu: boolean;
+}
+
+/**
+ * Detect NVIDIA GPU via `nvidia-smi`.
+ * Returns GPU name + VRAM if present, and probes Docker GPU passthrough.
+ */
+export async function detectGpu(): Promise<GpuInfo> {
+  const noGpu: GpuInfo = { available: false, dockerGpu: false };
+
+  // Step 1: nvidia-smi on the host
+  let name: string;
+  let vramMb: number;
+  try {
+    const smiOutput = await execAsync("nvidia-smi", [
+      "--query-gpu=name,memory.total",
+      "--format=csv,noheader,nounits",
+    ]);
+    const parts = smiOutput
+      .trim()
+      .split(",")
+      .map((s) => s.trim());
+    if (parts.length < 2) return noGpu;
+    name = parts[0]!;
+    vramMb = parseInt(parts[1]!, 10);
+    if (isNaN(vramMb)) return noGpu;
+  } catch {
+    return noGpu;
+  }
+
+  // Step 2: Docker GPU passthrough
+  let dockerGpu = false;
+  try {
+    const dockerCheck = await execAsync("docker", [
+      "run",
+      "--rm",
+      "--gpus",
+      "all",
+      "nvidia/cuda:12.1.0-base-ubuntu22.04",
+      "nvidia-smi",
+      "--query-gpu=name",
+      "--format=csv,noheader",
+    ]);
+    dockerGpu = dockerCheck.trim().length > 0;
+  } catch {
+    // Docker GPU not available — NVIDIA Container Toolkit not installed or Docker not running
+  }
+
+  return { available: true, name, vramMb, dockerGpu };
+}
+
+/** Promise wrapper around child_process.execFile */
+function execAsync(cmd: string, args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(cmd, args, { timeout: 15_000 }, (err, stdout) => {
+      if (err) reject(err);
+      else resolve(stdout);
+    });
+  });
 }
