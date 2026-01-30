@@ -12,6 +12,21 @@ import { execSync } from "child_process";
 import { readFileSync } from "fs";
 import { join } from "path";
 
+/** Match conventional commit type, e.g. "feat:", "feat(scope):", "feat!:" */
+function isConventionalType(msg: string, type: string): boolean {
+  if (!msg.startsWith(type)) return false;
+  const rest = msg.slice(type.length);
+  if (rest.startsWith(":")) return true;
+  if (rest.startsWith("!:")) return true;
+  if (rest.startsWith("(")) {
+    const close = rest.indexOf(")");
+    if (close === -1) return false;
+    const after = rest.slice(close + 1);
+    return after.startsWith(":") || after.startsWith("!:");
+  }
+  return false;
+}
+
 interface VersionCheck {
   hasFeats: boolean;
   hasFixes: boolean;
@@ -56,11 +71,11 @@ function analyzeCommits(commits: string[]): VersionCheck {
       result.hasBreaking = true;
     }
 
-    if (/^feat(\(.+\))?!?:/.test(msg)) {
+    if (isConventionalType(msg, "feat")) {
       result.hasFeats = true;
     }
 
-    if (/^fix(\(.+\))?!?:/.test(msg)) {
+    if (isConventionalType(msg, "fix")) {
       result.hasFixes = true;
     }
   }
