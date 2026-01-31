@@ -1335,39 +1335,102 @@ def _ct2_model_path(model_id: str, compute_type: str) -> str:
 
 
 def _ensure_ct2_model(model_id: str, compute_type: str) -> str:
-    """Ensure CT2 model exists on disk. Convert from HF if needed.
+    """Ensure CT2 model exists on disk, using a 3-tier fallback:
+
+    1. Check local volume (instant — already converted)
+    2. Download pre-converted CT2 model from HuggingFace Hub
+    3. Convert from HF weights locally (requires torch in image)
 
     Returns the path to the CT2 model directory.
-
-    Conversion requires transformers + torch (available in the converter
-    Docker stage or on first boot if included in the image).
     """
     model_path = _ct2_model_path(model_id, compute_type)
 
+    # ── Tier 1: Already on disk ──
     if os.path.isfile(os.path.join(model_path, "model.bin")):
         logger.info(f"CT2 model found at {model_path}")
         return model_path
 
-    logger.info(f"Converting {model_id} to CT2 ({compute_type})...")
+    # ── Tier 2: Download pre-converted from HuggingFace Hub ──
+    hf_repo = _PRE_CONVERTED_CT2_REPOS.get((model_id, compute_type))
+    if hf_repo:
+        result = _try_download_ct2_model(hf_repo, model_path)
+        if result:
+            return result
+
+    # ── Tier 3: Convert locally (needs torch + transformers) ──
+    logger.info(f"Converting {model_id} to CT2 ({compute_type}) locally...")
     logger.info(f"  Output: {model_path}")
 
     try:
         import ctranslate2.converters
         converter = ctranslate2.converters.TransformersConverter(model_id)
         converter.convert(model_path, quantization=compute_type)
-        logger.info(f"  Conversion complete: {model_path}")
+        logger.info(f"  Local conversion complete: {model_path}")
         return model_path
     except (ImportError, NameError, ModuleNotFoundError) as e:
-        logger.error(
-            f"CT2 conversion requires transformers + torch (not in runtime image): {e}\n"
-            f"  Run the converter first:\n"
-            f"    docker compose -f docker/docker-compose.i18n.yml run --rm nllb-converter "
-            f"{model_id} {compute_type}"
+        msg = (
+            f"CT2 model not available and local conversion requires torch "
+            f"(not in runtime image): {e}\n"
+            f"  Options:\n"
+            f"    1. Run the converter first:\n"
+            f"       docker compose -f docker/docker-compose.i18n.yml run --rm "
+            f"nllb-converter {model_id} {compute_type}\n"
+            f"    2. Use a model/precision combo with a pre-converted HF repo"
         )
-        raise SystemExit(1)
+        logger.error(msg)
+        raise RuntimeError(msg) from e
     except Exception as e:
-        logger.error(f"CT2 conversion failed: {e}")
+        logger.error(f"CT2 local conversion failed: {e}")
         raise
+
+
+# Pre-converted CT2 model repos on HuggingFace Hub.
+# Key: (facebook_model_id, compute_type) → HF repo ID
+# Sources:
+#   OpenNMT (official CT2 maintainer): int8 for 1.3B and 3.3B
+#   JustFrederik: int8, float16, float32 for 600M
+_PRE_CONVERTED_CT2_REPOS: dict[tuple[str, str], str] = {
+    # 600M — JustFrederik
+    ("facebook/nllb-200-distilled-600M", "int8"): "JustFrederik/nllb-200-distilled-600M-ct2-int8",
+    ("facebook/nllb-200-distilled-600M", "float16"): "JustFrederik/nllb-200-distilled-600M-ct2-float16",
+    ("facebook/nllb-200-distilled-600M", "float32"): "JustFrederik/nllb-200-distilled-600M-ct2",
+    # 1.3B — OpenNMT
+    ("facebook/nllb-200-distilled-1.3B", "int8"): "OpenNMT/nllb-200-distilled-1.3B-ct2-int8",
+    # 3.3B — OpenNMT
+    ("facebook/nllb-200-3.3B", "int8"): "OpenNMT/nllb-200-3.3B-ct2-int8",
+}
+
+
+def _try_download_ct2_model(hf_repo: str, dest_path: str) -> Optional[str]:
+    """Try to download a pre-converted CT2 model from HuggingFace Hub.
+
+    Returns dest_path on success, None on failure.
+    """
+    try:
+        from huggingface_hub import snapshot_download
+    except ImportError:
+        logger.warning("  huggingface_hub not installed — skipping pre-converted download")
+        return None
+
+    logger.info(f"  Downloading pre-converted CT2 model from {hf_repo}...")
+    try:
+        # snapshot_download gets the entire repo (model.bin, config, vocab, etc.)
+        downloaded = snapshot_download(
+            repo_id=hf_repo,
+            local_dir=dest_path,
+            # Only grab CT2 model files, not READMEs or git metadata
+            allow_patterns=["*.bin", "*.json", "*.txt", "*.model"],
+        )
+        # Verify model.bin exists
+        if os.path.isfile(os.path.join(dest_path, "model.bin")):
+            logger.info(f"  Downloaded pre-converted model to {dest_path}")
+            return dest_path
+        else:
+            logger.warning(f"  Download completed but model.bin not found in {dest_path}")
+            return None
+    except Exception as e:
+        logger.warning(f"  Failed to download pre-converted model from {hf_repo}: {e}")
+        return None
 
 
 def _ensure_sp_model(model_id: str) -> str:
