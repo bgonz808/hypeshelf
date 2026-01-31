@@ -1099,7 +1099,7 @@ DEVICE = _detect_device()
 
 NLLB_SPECS = [
     # Sorted largest-first (quality priority)
-    {"model_id": "facebook/nllb-200-3.3B",            "params_m": 3300, "label": "NLLB 3.3B",            "cpu_practical": False},
+    {"model_id": "facebook/nllb-200-3.3B",            "params_m": 3300, "label": "NLLB 3.3B",            "cpu_practical": {"int8", "int8_float32"}},
     {"model_id": "facebook/nllb-200-distilled-1.3B",   "params_m": 1300, "label": "NLLB 1.3B distilled",  "cpu_practical": True},
     {"model_id": "facebook/nllb-200-distilled-600M",   "params_m": 600,  "label": "NLLB 600M distilled",  "cpu_practical": True},
 ]
@@ -1246,7 +1246,9 @@ def _resolve_model(precision: str) -> str:
     ram_mb = _get_system_ram_mb()
     headroom = 4000
     usable = ram_mb - headroom
-    cpu_specs = [s for s in NLLB_SPECS if s["cpu_practical"]]
+    cpu_specs = [s for s in NLLB_SPECS
+                 if s["cpu_practical"] is True or
+                 (isinstance(s["cpu_practical"], set) and precision in s["cpu_practical"])]
 
     for spec in cpu_specs:
         needed = _mem_mb(spec["params_m"], precision)
@@ -1389,15 +1391,22 @@ def _ensure_ct2_model(model_id: str, compute_type: str) -> str:
 # Sources:
 #   OpenNMT (official CT2 maintainer): int8 for 1.3B and 3.3B
 #   JustFrederik: int8, float16, float32 for 600M
+#   entai2965: float32 for 600M, 1.3B, 3.3B; float16 for 3.3B
+#   michaelfeil: int8_float16 for 1.3B and 3.3B
 _PRE_CONVERTED_CT2_REPOS: dict[tuple[str, str], str] = {
-    # 600M — JustFrederik
+    # 600M
     ("facebook/nllb-200-distilled-600M", "int8"): "JustFrederik/nllb-200-distilled-600M-ct2-int8",
     ("facebook/nllb-200-distilled-600M", "float16"): "JustFrederik/nllb-200-distilled-600M-ct2-float16",
     ("facebook/nllb-200-distilled-600M", "float32"): "JustFrederik/nllb-200-distilled-600M-ct2",
-    # 1.3B — OpenNMT
+    # 1.3B
     ("facebook/nllb-200-distilled-1.3B", "int8"): "OpenNMT/nllb-200-distilled-1.3B-ct2-int8",
-    # 3.3B — OpenNMT
+    ("facebook/nllb-200-distilled-1.3B", "float32"): "entai2965/nllb-200-distilled-1.3B-ctranslate2",
+    ("facebook/nllb-200-distilled-1.3B", "int8_float16"): "michaelfeil/ct2fast-nllb-200-distilled-1.3B",
+    # 3.3B
     ("facebook/nllb-200-3.3B", "int8"): "OpenNMT/nllb-200-3.3B-ct2-int8",
+    ("facebook/nllb-200-3.3B", "float32"): "entai2965/nllb-200-3.3B-ctranslate2",
+    ("facebook/nllb-200-3.3B", "float16"): "entai2965/nllb-200-3.3B-ctranslate2-float16",
+    ("facebook/nllb-200-3.3B", "int8_float16"): "michaelfeil/ct2fast-nllb-200-3.3B",
 }
 
 
@@ -2012,8 +2021,9 @@ def _check_feasibility(spec: dict, precision: str, device: str) -> Optional[str]
     params_m = spec["params_m"]
 
     if device == "cpu":
-        if not spec["cpu_practical"]:
-            return f"not cpu_practical — {spec['label']} too slow on CPU"
+        cp = spec["cpu_practical"]
+        if cp is not True and (cp is False or precision not in cp):
+            return f"not cpu_practical — {spec['label']} at {precision} too slow on CPU"
         # Check compute type is supported on CPU
         supported = ctranslate2.get_supported_compute_types("cpu")
         if precision not in supported:

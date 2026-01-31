@@ -59,6 +59,7 @@ x-nllb-common: &nllb-common
     - ../.docker-volumes/nllb-ct2-models:/data/ct2-models:rw
     - ../.docker-volumes/nllb-api-key:/run/secrets/nllb-api-key:ro
     - ../.docker-volumes/nllb-data:/data:rw
+    - ../docker/nllb-server.py:/app/server.py:ro
   restart: unless-stopped
   read_only: true
   tmpfs:
@@ -113,7 +114,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.nllb
-      target: runtime
+      target: runtime-gpu
       args:
         GIT_COMMIT_DATE: ${GIT_COMMIT_DATE:-}
     profiles: ["gpu"]
