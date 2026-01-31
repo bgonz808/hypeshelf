@@ -1970,6 +1970,7 @@ class BenchmarkComboResult(BaseModel):
     precision: str
     status: str  # "ok" or "X (reason)"
     load_time_s: Optional[float] = None
+    cold_start: Optional[BenchmarkSentenceResult] = None  # warmup / first-inference metrics
     sentence_results: list[BenchmarkSentenceResult] = []
     avg_metrics: Optional[dict] = None
     pressure_snapshot: Optional[dict] = None
@@ -2292,15 +2293,27 @@ def _run_benchmark(req: BenchmarkRequest, hw_fingerprint: str) -> BenchmarkRespo
                             f"VRAM={vram_post} MB, RAM RSS={ram_post} MB — running warmup..."
                         )
 
-                    # Warmup
-                    _translate_with_metrics(
-                        "Hello", req.source_lang, req.target_lang,
+                    # Cold start: first inference after model load (CUDA context init,
+                    # kernel JIT, memory pool warmup). Captured separately from warm runs.
+                    warmup_text = req.sentences[0] if req.sentences else "Hello, how are you?"
+                    warmup_resp = _translate_with_metrics(
+                        warmup_text, req.source_lang, req.target_lang,
                         sp, trans, dev,
+                    )
+                    cold_start = BenchmarkSentenceResult(
+                        text=warmup_text,
+                        translation=warmup_resp.translation,
+                        metrics=warmup_resp.metrics,
+                    )
+                    logger.info(
+                        f"    cold_start: {warmup_resp.metrics.throughput_tok_s} tok/s "
+                        f"ttft={warmup_resp.metrics.ttft_ms:.1f}ms "
+                        f"total={warmup_resp.metrics.total_ms:.1f}ms"
                     )
 
                     combo_snap = resource_monitor.snapshot().to_dict() if resource_monitor else None
 
-                    # Run sentences
+                    # Run sentences (warm — CUDA context already initialized)
                     sentence_results = []
                     combo_aborted = False
                     for sent in req.sentences:
@@ -2365,11 +2378,18 @@ def _run_benchmark(req: BenchmarkRequest, hw_fingerprint: str) -> BenchmarkRespo
                         precision=prec,
                         status="ok",
                         load_time_s=round(load_time, 2),
+                        cold_start=cold_start,
                         sentence_results=sentence_results,
                         avg_metrics=avg,
                         post_load_snapshot=combo_snap,
                     ))
-                    logger.info(f"  {dev_label} {spec['label']} {prec}: done (avg {avg.get('throughput_tok_s', 0)} tok/s)")
+                    cold_tp = cold_start.metrics.throughput_tok_s
+                    warm_tp = avg.get('throughput_tok_s', 0)
+                    penalty = f"{cold_tp/warm_tp:.0%}" if warm_tp else "?"
+                    logger.info(
+                        f"  {dev_label} {spec['label']} {prec}: done — "
+                        f"warm={warm_tp} tok/s, cold={cold_tp} tok/s ({penalty} of warm)"
+                    )
 
                     del sp, trans
 
@@ -2419,7 +2439,10 @@ def _build_matrices(combos: list[BenchmarkComboResult]) -> dict[str, list[list[s
     """Build PARAM×PRECISION matrices for each metric."""
     metrics_to_show = {
         "Throughput (tok/s)": "throughput_tok_s",
+        "Cold Start Throughput (tok/s)": "__cold_throughput",
+        "Cold Start Penalty (%)": "__cold_penalty",
         "TTFT (ms)": "ttft_ms",
+        "Cold Start TTFT (ms)": "__cold_ttft",
         "Total (ms)": "total_ms",
         "Generate (ms)": "generate_ms",
         "Model Load (s)": None,
@@ -2455,6 +2478,20 @@ def _build_matrices(combos: list[BenchmarkComboResult]) -> dict[str, list[list[s
                     row.append(reason)
                 elif field_name is None:
                     row.append(str(match.load_time_s) if match.load_time_s else "\u2014")
+                elif field_name == "__cold_throughput":
+                    cs = match.cold_start
+                    row.append(str(cs.metrics.throughput_tok_s) if cs else "\u2014")
+                elif field_name == "__cold_penalty":
+                    cs = match.cold_start
+                    warm = match.avg_metrics.get("throughput_tok_s") if match.avg_metrics else None
+                    if cs and warm and warm > 0:
+                        pct = round(100 * (1 - cs.metrics.throughput_tok_s / warm))
+                        row.append(f"{pct}%")
+                    else:
+                        row.append("\u2014")
+                elif field_name == "__cold_ttft":
+                    cs = match.cold_start
+                    row.append(str(round(cs.metrics.ttft_ms, 1)) if cs else "\u2014")
                 elif field_name == "__vram_free":
                     snap = match.post_load_snapshot
                     row.append(str(snap["vram_free_mb"]) if snap and "vram_free_mb" in snap else "\u2014")
