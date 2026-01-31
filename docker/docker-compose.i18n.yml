@@ -1,4 +1,4 @@
-# i18n Translation Services
+# i18n Translation Services (CTranslate2 backend)
 #
 # CPU (default):
 #   docker compose -f docker/docker-compose.i18n.yml up -d
@@ -9,11 +9,15 @@
 # Multi-dev (LAN) mode:
 #   NLLB_NETWORK_MODE=lan docker compose -f docker/docker-compose.i18n.yml up -d
 #
-# The GPU profile builds with CUDA torch and reserves the GPU device.
-# Only one of nllb (CPU) or nllb-gpu runs — they share port 8000.
+# Model conversion (one-time, before first run):
+#   docker compose -f docker/docker-compose.i18n.yml run --rm nllb-converter \
+#     facebook/nllb-200-distilled-600M int8_float16
 #
-# Model (~1.2 GB) is downloaded on first run and persisted in
-# .docker-volumes/nllb-cache/ (gitignored, repo-local bind mount).
+# The GPU profile reserves the GPU device. Only one of nllb (CPU) or
+# nllb-gpu runs — they share port 8000.
+#
+# CT2 models are persisted in .docker-volumes/nllb-ct2-models/ (gitignored).
+# First run triggers automatic HF→CT2 conversion if models aren't present.
 #
 # Security:
 #   - TLS with auto-generated self-signed cert (ephemeral tmpfs)
@@ -25,12 +29,13 @@
 #   - No privilege escalation
 #   - Non-root user (nllb) inside container
 #   - No access to Docker socket or host network
+#   - pip-audit run at build time — build fails on any CVE
 
 x-nllb-common: &nllb-common
   ports:
     - "${NLLB_BIND:-127.0.0.1}:8000:8000"
   environment:
-    # Model + precision auto-selected by server using PyTorch APIs.
+    # Model + compute type auto-selected by server using CT2 APIs.
     # Override with NLLB_PARAMS (600M/1.3B/3.3B), NLLB_PRECISION, NLLB_DEVICE.
     # MODEL_NAME is advanced — prefer NLLB_PARAMS for friendly aliases.
     - MODEL_NAME=${MODEL_NAME:-}
@@ -38,6 +43,7 @@ x-nllb-common: &nllb-common
     - NLLB_PRECISION=${NLLB_PRECISION:-}
     - NLLB_DEVICE=${NLLB_DEVICE:-}
     - HF_HOME=/home/nllb/.cache/huggingface
+    - NLLB_CT2_MODEL_DIR=/data/ct2-models
     - NLLB_API_KEY=${NLLB_API_KEY:-}
     # Resource monitor thresholds (see nllb-server.py ResourceMonitor)
     - NLLB_VRAM_SOFT_MB=${NLLB_VRAM_SOFT_MB:-2000}
@@ -50,6 +56,7 @@ x-nllb-common: &nllb-common
     - NLLB_MONITOR_LOG_INTERVAL_S=${NLLB_MONITOR_LOG_INTERVAL_S:-30.0}
   volumes:
     - ../.docker-volumes/nllb-cache:/home/nllb/.cache:rw
+    - ../.docker-volumes/nllb-ct2-models:/data/ct2-models:rw
     - ../.docker-volumes/nllb-api-key:/run/secrets/nllb-api-key:ro
     - ../.docker-volumes/nllb-data:/data:rw
   restart: unless-stopped
@@ -78,14 +85,25 @@ x-nllb-common: &nllb-common
     start_period: 120s
 
 services:
+  # ── Model converter (one-time utility) ─────────────────────────────
+  nllb-converter:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.nllb
+      target: converter
+    volumes:
+      - ../.docker-volumes/nllb-ct2-models:/data/ct2-models:rw
+      - ../.docker-volumes/nllb-cache:/root/.cache:rw
+    profiles: ["converter"]
+
   # ── CPU variant (default) ────────────────────────────────────────
   nllb:
     <<: *nllb-common
     build:
       context: ..
       dockerfile: docker/Dockerfile.nllb
+      target: runtime
       args:
-        TORCH_VARIANT: cpu
         GIT_COMMIT_DATE: ${GIT_COMMIT_DATE:-}
     profiles: ["", "cpu"]
 
@@ -95,8 +113,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.nllb
+      target: runtime
       args:
-        TORCH_VARIANT: cu128
         GIT_COMMIT_DATE: ${GIT_COMMIT_DATE:-}
     profiles: ["gpu"]
     deploy:

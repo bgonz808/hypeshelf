@@ -4,7 +4,7 @@
  *
  * Usage:
  *   npx tsx scripts/i18n-benchmark.ts                          # full matrix
- *   npx tsx scripts/i18n-benchmark.ts --params=600M --precision=bf16 --device=gpu
+ *   npx tsx scripts/i18n-benchmark.ts --params=600M --precision=int8_float16 --device=gpu
  *
  * Calls the server's /benchmark endpoint (HMAC auth), prints per-combo
  * line items, then PARAM×PRECISION matrices for each metric.
@@ -44,7 +44,7 @@ function parseArgs(): BenchmarkCliOptions {
           "",
           "Options:",
           "  --params=600M|1.3B|3.3B   Filter to specific model size",
-          "  --precision=bf16|fp32|...  Filter to specific precision",
+          "  --precision=int8_float16|float16|float32|...  Filter to specific CT2 compute type",
           "  --device=gpu|cpu           Filter to specific device",
           "  --help                     Show this help",
         ].join("\n")

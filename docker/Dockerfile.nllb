@@ -1,52 +1,67 @@
-# NLLB Translation Server
+# NLLB Translation Server (CTranslate2 backend)
 #
-# Serves Facebook's NLLB-200 model via FastAPI with auto-precision selection.
+# Multi-stage build:
+#   Stage 1 (converter): torch + transformers for HF→CT2 model conversion
+#   Stage 2 (runtime):   CT2 only — ~39MB vs ~2GB torch
 #
-# Build args:
-#   TORCH_VARIANT  - cpu (default, ~200 MB) or cu128 (CUDA 12.8, ~2 GB)
+# The converter stage is only needed if pre-converted CT2 models aren't
+# already on the mounted volume. Runtime stage never has torch installed.
 #
-# Precision is auto-detected at runtime:
-#   CPU:  fp32
-#   GPU:  bf16 (Ampere+) or fp16, with int8/int4 fallback for small VRAM
+# Precision is auto-detected at runtime via ctranslate2.get_supported_compute_types().
 #
-# Security: runs as non-root user, minimal filesystem writes.
-# Model is downloaded on first run and cached via bind mount.
+# Security: runs as non-root user, minimal filesystem writes, pip-audit at build.
 
-FROM python:3.14-slim
+# ── Stage 1: Converter (HF → CT2 model conversion) ──────────────────
+# This stage is used by `docker compose run nllb-converter` or extracted
+# via `docker build --target converter`. The runtime stage does NOT
+# inherit from this — it starts fresh from python:3.14-slim.
+FROM python:3.14-slim AS converter
+
+RUN pip install --no-cache-dir \
+    ctranslate2==4.6.3 \
+    transformers==5.0.0 \
+    torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu \
+    sentencepiece==0.2.1
+
+# Conversion entrypoint: converts a HF model to CT2 format
+# Usage: docker run --rm -v ./models:/data/ct2-models converter \
+#   facebook/nllb-200-distilled-600M int8_float16
+COPY docker/convert-ct2-model.sh /convert.sh
+RUN chmod +x /convert.sh
+ENTRYPOINT ["/convert.sh"]
+
+
+# ── Stage 2: Runtime (what actually ships) ───────────────────────────
+FROM python:3.14-slim AS runtime
 
 WORKDIR /app
-
-ARG TORCH_VARIANT=cpu
 
 # System deps for sentencepiece (build-essential needed for compile, removed after)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-# Torch — installed first with variant-specific index
+# Runtime Python deps — dramatically smaller than torch stack
+# ctranslate2: ~39MB (vs torch ~2GB + transformers ~100MB + bitsandbytes ~59MB)
+# nvidia-ml-py: ~51KB (replaces torch.cuda.* for GPU monitoring)
 RUN pip install --no-cache-dir \
-    torch==2.10.0 --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
-
-# Remaining Python deps (standard PyPI)
-RUN pip install --no-cache-dir \
-    transformers==5.0.0 \
+    ctranslate2==4.6.3 \
     sentencepiece==0.2.1 \
-    accelerate==1.6.0 \
+    nvidia-ml-py==13.590.48 \
     fastapi==0.128.0 \
     uvicorn==0.40.0 \
-    cryptography==46.0.4
-
-# bitsandbytes — multi-backend int8/int4 quantization (~59 MB)
-# Supports CUDA, AMD ROCm, Apple MPS, and CPU (AVX512-optimized)
-RUN pip install --no-cache-dir bitsandbytes==0.49.1
+    cryptography==46.0.4 \
+ && pip install --no-cache-dir pip-audit==2.10.0 \
+ && pip-audit --strict --desc \
+ && pip uninstall -y pip-audit \
+ && pip cache purge
 
 # Remove build tools (no longer needed at runtime)
 RUN apt-get purge -y --auto-remove build-essential && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* /tmp/* /root/.cache && \
+    find / -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
 
 # Bake git commit date into the image so /health can report version_at
-# without needing .git in the container. Pass at build time:
-#   docker build --build-arg GIT_COMMIT_DATE=$(git log -1 --format=%aI -- docker/nllb-server.py)
 ARG GIT_COMMIT_DATE=""
 ENV NLLB_GIT_COMMIT_DATE=${GIT_COMMIT_DATE}
 
@@ -59,11 +74,11 @@ RUN mkdir -p /home/nllb/.cache && chown -R nllb:nllb /home/nllb
 
 USER nllb
 
-# Model auto-selected by server at runtime. Override with NLLB_PARAMS or MODEL_NAME.
-ENV MODEL_NAME=""
+# CT2 model dir (mounted volume) and HF cache (for sentencepiece download)
+ENV NLLB_CT2_MODEL_DIR="/data/ct2-models"
+ENV HF_HOME="/home/nllb/.cache/huggingface"
 ENV HOST="0.0.0.0"
 ENV PORT="8000"
-ENV HF_HOME="/home/nllb/.cache/huggingface"
 
 EXPOSE 8000
 
