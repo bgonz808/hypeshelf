@@ -1357,12 +1357,14 @@ def _ensure_ct2_model(model_id: str, compute_type: str) -> str:
         converter.convert(model_path, quantization=compute_type)
         logger.info(f"  Conversion complete: {model_path}")
         return model_path
-    except ImportError as e:
+    except (ImportError, NameError, ModuleNotFoundError) as e:
         logger.error(
-            f"CT2 conversion requires transformers + torch: {e}. "
-            f"Either include them in the image or use pre-converted models."
+            f"CT2 conversion requires transformers + torch (not in runtime image): {e}\n"
+            f"  Run the converter first:\n"
+            f"    docker compose -f docker/docker-compose.i18n.yml run --rm nllb-converter "
+            f"{model_id} {compute_type}"
         )
-        raise
+        raise SystemExit(1)
     except Exception as e:
         logger.error(f"CT2 conversion failed: {e}")
         raise

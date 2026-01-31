@@ -18,10 +18,12 @@
 FROM python:3.14-slim AS converter
 
 RUN pip install --no-cache-dir \
-    ctranslate2==4.6.3 \
-    transformers==5.0.0 \
     torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu \
-    sentencepiece==0.2.1
+ && pip install --no-cache-dir \
+    ctranslate2==4.6.3 \
+    transformers==4.57.6 \
+    sentencepiece==0.2.1 \
+    huggingface_hub
 
 # Conversion entrypoint: converts a HF model to CT2 format
 # Usage: docker run --rm -v ./models:/data/ct2-models converter \
@@ -44,7 +46,8 @@ RUN apt-get update && \
 # Runtime Python deps — dramatically smaller than torch stack
 # ctranslate2: ~39MB (vs torch ~2GB + transformers ~100MB + bitsandbytes ~59MB)
 # nvidia-ml-py: ~51KB (replaces torch.cuda.* for GPU monitoring)
-RUN pip install --no-cache-dir \
+RUN pip install --no-cache-dir pip==25.3 \
+ && pip install --no-cache-dir \
     ctranslate2==4.6.3 \
     sentencepiece==0.2.1 \
     nvidia-ml-py==13.590.48 \
