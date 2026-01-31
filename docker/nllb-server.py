@@ -1927,6 +1927,7 @@ class BenchmarkResponse(BaseModel):
     matrices: dict[str, list[list[str]]]  # metric_name → 2D string grid
     cached: bool = False           # true if served from cache
     joined: bool = False           # true if caller waited on in-flight benchmark
+    started_at: Optional[str] = None   # ISO timestamp of when benchmark started
     completed_at: Optional[str] = None  # ISO timestamp of when benchmark finished
     resources_at_completion: Optional[dict] = None  # resource snapshot when done
 
@@ -2172,6 +2173,8 @@ def _run_benchmark(req: BenchmarkRequest, hw_fingerprint: str) -> BenchmarkRespo
     """Core benchmark logic, called under _benchmark_lock."""
     from datetime import datetime, timezone
     from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
+    started_at = datetime.now(timezone.utc).isoformat()
 
     devices = ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]
 
@@ -2448,6 +2451,7 @@ def _run_benchmark(req: BenchmarkRequest, hw_fingerprint: str) -> BenchmarkRespo
         hardware=hw_info,
         combos=combos,
         matrices=matrices,
+        started_at=started_at,
         completed_at=completed_at,
         resources_at_completion=resources_snap,
     )
