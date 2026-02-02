@@ -97,7 +97,7 @@ export default function AdminProviders() {
     if (!provider.requiresKey) {
       return {
         label: "No key needed",
-        color: "text-green-600 dark:text-green-400",
+        color: "text-success",
       };
     }
 
@@ -105,7 +105,7 @@ export default function AdminProviders() {
     if (config?.encryptedKey) {
       return {
         label: "DB configured",
-        color: "text-yellow-600 dark:text-yellow-400",
+        color: "text-warning",
       };
     }
 
@@ -178,8 +178,8 @@ export default function AdminProviders() {
                   disabled={saving === provider.id}
                   className={`min-h-[44px] min-w-[80px] rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     isEnabled
-                      ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
-                      : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+                      ? "bg-success text-success hover-bg-success"
+                      : "bg-error text-error hover-bg-error"
                   } disabled:opacity-50`}
                 >
                   {saving === provider.id

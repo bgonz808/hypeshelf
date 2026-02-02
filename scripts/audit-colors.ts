@@ -107,6 +107,8 @@ const ALLOWED_PATTERNS = [
   // Hover utilities
   /\bhover-bg-accent\b/,
   /\bhover-bg-surface-secondary\b/,
+  /\bhover-bg-success\b/,
+  /\bhover-bg-error\b/,
 
   // Transparent/inherit (always allowed)
   /\bbg-transparent\b/,
@@ -214,6 +216,8 @@ const SUGGESTIONS = new Map<string, string>([
   ["text-green-700", "text-success"],
   ["text-green-800", "text-success"],
   ["border-green-200", "border-success"],
+  ["hover:bg-green-200", "hover-bg-success"],
+  ["hover:bg-red-200", "hover-bg-error"],
 
   // Purple (creative/brand - should use accent)
   ["bg-purple-100", "bg-cat-creative or bg-accent-light"],
@@ -450,6 +454,8 @@ function validateSuggestions(): void {
     // Hover utilities
     "hover-bg-accent",
     "hover-bg-surface-secondary",
+    "hover-bg-success",
+    "hover-bg-error",
   ]);
 
   const errors: string[] = [];

@@ -223,6 +223,55 @@
   }
 }
 
+@media (prefers-contrast: more) {
+  :root {
+    --color-text-muted: #374151;
+    --color-border-default: #9ca3af;
+    --color-border-muted: #9ca3af;
+    --color-border-input: #6b7280;
+    --color-success: #15803d;
+    --color-success-light: #dcfce7;
+    --color-success-border: #86efac;
+    --color-error: #b91c1c;
+    --color-error-light: #fee2e2;
+    --color-error-border: #fca5a5;
+    --color-warning: #b45309;
+    --color-warning-light: #fef3c7;
+    --color-warning-border: #fcd34d;
+  }
+}
+
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root {
+    --color-text-muted: #d1d5db;
+    --color-border-default: #9ca3af;
+    --color-border-muted: #6b7280;
+    --color-border-input: #9ca3af;
+    --color-success: #86efac;
+    --color-success-light: #052e16;
+    --color-success-border: #22c55e;
+    --color-error: #fca5a5;
+    --color-error-light: #450a0a;
+    --color-error-border: #ef4444;
+    --color-warning: #fcd34d;
+    --color-warning-light: #451a03;
+    --color-warning-border: #f59e0b;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --color-accent: LinkText;
+    --color-accent-hover: LinkText;
+    --color-on-accent: Canvas;
+    --color-error: Mark;
+    --color-success: LinkText;
+    --color-ring-accent: Highlight;
+    --color-border-default: CanvasText;
+    --color-border-muted: CanvasText;
+  }
+}
+
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
@@ -352,6 +401,16 @@
 @utility hover-bg-surface-secondary {
   &:hover {
     background-color: var(--color-surface-secondary);
+  }
+}
+@utility hover-bg-success {
+  &:hover {
+    background-color: var(--color-success-border);
+  }
+}
+@utility hover-bg-error {
+  &:hover {
+    background-color: var(--color-error-border);
   }
 }
 
