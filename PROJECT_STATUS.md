@@ -123,14 +123,16 @@ Build a social recommendations platform demonstrating:
 | **Type Safety**       | TypeScript strict                | pre-push          | ✓   | Configured |
 | **Visual Regression** | Playwright screenshots           | -                 | ✓   | Configured |
 | **Load/Abuse**        | k6 or Artillery                  | manual            | -   | Future     |
+| **Container Scan**    | Trivy                            | -                 | ✓   | Configured |
 
 ## Architecture Decision Records
 
-| ADR                                           | Title                      | Status   |
-| --------------------------------------------- | -------------------------- | -------- |
-| [001](docs/decisions/001-tech-stack.md)       | Technology Stack Selection | Accepted |
-| [002](docs/decisions/002-testing-strategy.md) | Testing Strategy           | Accepted |
-| [003](docs/decisions/003-auth-flow.md)        | Authentication Flow        | Pending  |
+| ADR                                             | Title                      | Status   |
+| ----------------------------------------------- | -------------------------- | -------- |
+| [001](docs/decisions/001-tech-stack.md)         | Technology Stack Selection | Accepted |
+| [002](docs/decisions/002-testing-strategy.md)   | Testing Strategy           | Accepted |
+| [003](docs/decisions/003-auth-flow.md)          | Authentication Flow        | Pending  |
+| [005](docs/decisions/005-container-scanning.md) | Container Image Scanning   | Accepted |
 
 ## Environment Status
 

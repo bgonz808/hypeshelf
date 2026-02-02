@@ -1,0 +1,97 @@
+name: Container Image Scan (Trivy)
+
+on:
+  schedule:
+    # Weekly on Sundays at 5am UTC (after CodeQL 3am, DAST 4am)
+    - cron: "0 5 * * 0"
+  push:
+    branches: [main]
+    paths: ["docker/**"]
+  pull_request:
+    branches: [main]
+    paths: ["docker/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan-image:
+    name: Image Scan (${{ matrix.stage }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stage: [runtime, runtime-gpu]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build image
+        run: |
+          docker build \
+            --target ${{ matrix.stage }} \
+            -t hypeshelf-${{ matrix.stage }}:scan \
+            -f docker/Dockerfile.nllb \
+            .
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          image-ref: "hypeshelf-${{ matrix.stage }}:scan"
+          format: "sarif"
+          output: "trivy-image-${{ matrix.stage }}.sarif"
+          severity: "HIGH,CRITICAL"
+          # Block PRs on findings; scheduled runs are report-only
+          exit-code: ${{ github.event_name == 'pull_request' && '1' || '0' }}
+
+      - name: Upload SARIF to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-image-${{ matrix.stage }}.sarif"
+          category: "trivy-image-${{ matrix.stage }}"
+
+      - name: Trivy JSON report
+        uses: aquasecurity/trivy-action@0.31.0
+        if: always()
+        with:
+          image-ref: "hypeshelf-${{ matrix.stage }}:scan"
+          format: "json"
+          output: "trivy-image-${{ matrix.stage }}.json"
+          severity: "HIGH,CRITICAL"
+
+      - name: Upload JSON artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-image-${{ matrix.stage }}
+          path: "trivy-image-${{ matrix.stage }}.json"
+          retention-days: 30
+
+  scan-config:
+    name: Dockerfile Misconfiguration Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Trivy config scan
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          scan-type: "config"
+          scan-ref: "docker/"
+          format: "sarif"
+          output: "trivy-config.sarif"
+          severity: "HIGH,CRITICAL"
+          exit-code: ${{ github.event_name == 'pull_request' && '1' || '0' }}
+
+      - name: Upload SARIF to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-config.sarif"
+          category: "trivy-config"

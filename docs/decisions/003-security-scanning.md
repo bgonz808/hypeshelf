@@ -42,11 +42,12 @@ We implement a **defense-in-depth** scanning strategy across four layers:
 
 ### Layer 4: Scheduled (Weekly)
 
-| Tool      | Purpose             | Blocking       |
-| --------- | ------------------- | -------------- |
-| OWASP ZAP | DAST baseline scan  | Report only    |
-| Nuclei    | Known CVE detection | Creates issues |
-| CodeQL    | Full codebase scan  | Report only    |
+| Tool      | Purpose              | Blocking       |
+| --------- | -------------------- | -------------- |
+| OWASP ZAP | DAST baseline scan   | Report only    |
+| Nuclei    | Known CVE detection  | Creates issues |
+| CodeQL    | Full codebase scan   | Report only    |
+| Trivy     | Container image CVEs | Report only    |
 
 ## Rationale
 
@@ -194,3 +195,4 @@ Not chosen because:
 
 - ADR-001: Tech Stack (defines what we're scanning)
 - ADR-002: Testing Strategy (unit/integration tests)
+- ADR-005: Container Scanning (Trivy for Docker images)
