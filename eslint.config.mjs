@@ -70,6 +70,19 @@ const config = [
     },
   },
 
+  // scripts/** overrides: CLI tools legitimately use console, dynamic fs paths,
+  // and bracket-access on controlled objects. Critical security rules (eval,
+  // child-process, unsafe-regex, bidi, etc.) remain at error level.
+  {
+    files: ["scripts/**/*.ts"],
+    rules: {
+      "no-console": "off",
+      "security/detect-non-literal-fs-filename": "off",
+      "security/detect-non-literal-regexp": "off",
+      "security/detect-object-injection": "off",
+    },
+  },
+
   // Suppress date-ops rule in canonical i18n utilities (they ARE the blessed implementation)
   {
     files: ["scripts/lib/message-manager.ts"],
