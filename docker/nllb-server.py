@@ -10,6 +10,10 @@ Endpoints:
   POST /benchmark  { sentences, source_lang, target_lang } → full matrix results
   DELETE /benchmark/cache → clear cached benchmark results
   GET  /health     → { status, model, device, precision, ... }
+  GET  /benchmark/history → recent events metadata (JSON)
+  GET  /benchmark/runs/{run_id} → full event JSON
+  GET  /benchmark/runs/{run_id}/report → single event HTML report
+  GET  /benchmark/report → all-runs HTML dashboard (?type=&since=&until=)
 
 Security:
   - TLS with auto-generated self-signed cert (written to /tmp/tls/)
@@ -98,6 +102,7 @@ _SERVER_VERSION_AT, _SERVER_VERSION_SOURCE = _derive_version_at()
 import collections
 import gc
 import hashlib
+import uuid
 import hmac
 import json
 import os
@@ -113,6 +118,7 @@ from typing import Optional
 import ctranslate2
 import sentencepiece
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import uvicorn
 
@@ -887,6 +893,237 @@ def _create_pressure_cache() -> PressureFailureCache:
 pressure_cache: Optional[PressureFailureCache] = None
 
 
+class EventLogger:
+    """Append-only JSONL log of benchmark runs and translation events with provenance."""
+
+    def __init__(self, log_path: str):
+        self._path = Path(log_path)
+        self._lock = threading.Lock()
+        self._logger = logging.getLogger("nllb.event_log")
+
+    # ── Backfill ────────────────────────────────────────────────────
+
+    def _backfill(self) -> None:
+        """Backfill legacy JSONL rows with missing fields.
+
+        Adds:
+          - "type": "benchmark" to rows missing the type discriminator
+          - "decode_throughput_tok_s" imputed from generate_ms/ttft_ms/output_tokens
+            wherever metrics exist but the field is absent
+
+        Uses atomic temp-file + Path.replace() so concurrent readers see
+        either the old file or the fully-rewritten file, never a partial.
+        """
+        if not self._path.exists():
+            return
+        lines = self._path.read_text().splitlines()
+        changed = 0
+        new_lines: list[str] = []
+        for line in lines:
+            if not line.strip():
+                new_lines.append(line)
+                continue
+            entry = json.loads(line)
+            modified = False
+
+            # Backfill type field
+            if "type" not in entry:
+                entry["type"] = "benchmark"
+                modified = True
+
+            # Impute decode_throughput_tok_s into all metrics blocks
+            modified |= self._impute_decode_throughput(entry)
+
+            if modified:
+                new_lines.append(json.dumps(entry, default=str))
+                changed += 1
+            else:
+                new_lines.append(line)
+        if changed == 0:
+            self._logger.info("Backfill: all rows up to date")
+            return
+        import tempfile
+        tmp = Path(tempfile.mktemp(dir=self._path.parent, suffix=".jsonl.tmp"))
+        tmp.write_text("\n".join(new_lines) + "\n")
+        tmp.replace(self._path)
+        self._logger.info(f"Backfill: updated {changed} rows")
+
+    @staticmethod
+    def _impute_decode_throughput(entry: dict) -> bool:
+        """Add decode_throughput_tok_s to any metrics dict missing it. Returns True if modified."""
+        modified = False
+
+        def _impute_metrics(m: dict) -> bool:
+            if not isinstance(m, dict):
+                return False
+            if "decode_throughput_tok_s" in m:
+                return False
+            gen = m.get("generate_ms", 0)
+            ttft = m.get("ttft_ms", 0)
+            out_tok = m.get("output_tokens", 0)
+            decode_gen_ms = gen - ttft
+            if decode_gen_ms > 0 and out_tok > 0:
+                m["decode_throughput_tok_s"] = round(out_tok / (decode_gen_ms / 1000), 1)
+                return True
+            return False
+
+        # Translate events: response.metrics
+        resp = entry.get("response", {})
+        if isinstance(resp, dict) and "metrics" in resp:
+            modified |= _impute_metrics(resp["metrics"])
+
+        # Benchmark events: combos[].avg_metrics, combos[].cold_start.iterations[].metrics,
+        # combos[].sentence_results[].metrics
+        for combo in entry.get("combos", []):
+            if not isinstance(combo, dict):
+                continue
+            modified |= _impute_metrics(combo.get("avg_metrics", {}))
+            cold = combo.get("cold_start")
+            if isinstance(cold, dict):
+                for it in cold.get("iterations", []):
+                    if isinstance(it, dict):
+                        modified |= _impute_metrics(it.get("metrics", {}))
+            for sr in combo.get("sentence_results", []):
+                if isinstance(sr, dict):
+                    modified |= _impute_metrics(sr.get("metrics", {}))
+
+        return modified
+
+    # ── Benchmark logging (existing) ────────────────────────────────
+
+    def log_run(
+        self,
+        request: "BenchmarkRequest",
+        response: "BenchmarkResponse",
+        hw_fingerprint: str,
+        notes: Optional[str] = None,
+    ) -> str:
+        """Append a benchmark run to JSONL. Returns run_id."""
+        from datetime import datetime, timezone
+        run_id = str(uuid.uuid4())
+        entry = {
+            "type": "benchmark",
+            "run_id": run_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "provenance": {
+                "server_version": _SERVER_VERSION,
+                "ct2_version": ctranslate2.__version__,
+                "hw_fingerprint": hw_fingerprint,
+                "backend": "ctranslate2",
+                "git_commit_date": os.environ.get("NLLB_GIT_COMMIT_DATE", ""),
+            },
+            "hardware": response.hardware,
+            "request": {
+                "sentences": request.sentences,
+                "source_lang": request.source_lang,
+                "target_lang": request.target_lang,
+                "filter_params": request.filter_params,
+                "filter_precisions": request.filter_precisions,
+                "filter_devices": request.filter_devices,
+                "notes": notes,
+            },
+            "combos": [c.model_dump() for c in response.combos if c.status == "ok"],
+            "duration_s": round(
+                (datetime.fromisoformat(response.completed_at)
+                 - datetime.fromisoformat(response.started_at)).total_seconds(), 1
+            ) if response.started_at and response.completed_at else None,
+        }
+        self._append(entry, f"Benchmark run logged: {run_id}")
+        return run_id
+
+    # ── Translation logging (new) ───────────────────────────────────
+
+    def log_translate(
+        self,
+        request_text: str,
+        source_lang: str,
+        target_lang: str,
+        translation: str,
+        metrics: "TranslationMetrics",
+        model_name: str,
+        precision: str,
+        device: str,
+        hw_fingerprint: str,
+        warning: Optional[dict] = None,
+    ) -> str:
+        """Append a translation event to JSONL. Returns run_id."""
+        from datetime import datetime, timezone
+        run_id = str(uuid.uuid4())
+        entry = {
+            "type": "translate",
+            "run_id": run_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "provenance": {
+                "server_version": _SERVER_VERSION,
+                "ct2_version": ctranslate2.__version__,
+                "hw_fingerprint": hw_fingerprint,
+                "backend": "ctranslate2",
+                "model_name": model_name,
+                "precision": precision,
+                "device": device,
+            },
+            "request": {
+                "text": request_text,
+                "source_lang": source_lang,
+                "target_lang": target_lang,
+            },
+            "response": {
+                "translation": translation,
+                "metrics": metrics.model_dump(),
+            },
+            "warning": warning,
+        }
+        self._append(entry, f"Translate event logged: {run_id}")
+        return run_id
+
+    # ── Query helpers ───────────────────────────────────────────────
+
+    def get_event_by_id(self, run_id: str) -> Optional[dict]:
+        """Scan JSONL for a single event by run_id."""
+        if not self._path.exists():
+            return None
+        for line in self._path.read_text().splitlines():
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            if entry.get("run_id") == run_id:
+                return entry
+        return None
+
+    def get_all_events(self, event_type: Optional[str] = None) -> list[dict]:
+        """Load all events, optionally filtered by type."""
+        if not self._path.exists():
+            return []
+        events: list[dict] = []
+        for line in self._path.read_text().splitlines():
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            if event_type and entry.get("type") != event_type:
+                continue
+            events.append(entry)
+        return events
+
+    # ── Internal ────────────────────────────────────────────────────
+
+    def _append(self, entry: dict, log_msg: str) -> None:
+        line = json.dumps(entry, default=str) + "\n"
+        with self._lock:
+            fd = os.open(self._path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+            try:
+                os.write(fd, line.encode())
+            finally:
+                os.close(fd)
+        self._logger.info(f"{log_msg} -> {self._path}")
+
+
+_EVENT_LOG_PATH = os.environ.get(
+    "NLLB_EVENT_LOG",
+    os.environ.get("NLLB_BENCHMARK_LOG", "/data/benchmark-runs.jsonl"),
+)
+event_logger: Optional[EventLogger] = None
+
+
 def _load_api_key() -> str:
     """Read API key from env var, falling back to mounted secrets file."""
     key = os.environ.get("NLLB_API_KEY", "").strip()
@@ -1321,6 +1558,15 @@ def _warn_if_cached_failure(model_id: str, precision: str, device: str, *, force
 # Initialize pressure cache early (before model selection)
 pressure_cache = _create_pressure_cache()
 
+try:
+    event_logger = EventLogger(_EVENT_LOG_PATH)
+    event_logger._backfill()
+    logger.info(f"Event JSONL logger initialized: {_EVENT_LOG_PATH}")
+except Exception as e:
+    logger.warning(f"Failed to initialize event logger: {e}")
+
+_HW_FINGERPRINT = PressureFailureCache.build_hw_fingerprint()
+
 PRECISION = _resolve_compute_type()
 MODEL_NAME = _resolve_model(PRECISION)
 
@@ -1590,11 +1836,12 @@ class TranslationMetrics(BaseModel):
     input_tokens: int
     output_tokens: int
     tokenize_ms: float
-    generate_ms: float
     ttft_ms: float
+    generate_ms: float
     decode_ms: float
     total_ms: float
-    throughput_tok_s: float
+    decode_throughput_tok_s: float  # output_tokens / (generate_ms - ttft_ms), TTFT-free
+    throughput_tok_s: float         # output_tokens / total_ms, end-to-end
 
 
 class TranslateResponse(BaseModel):
@@ -1736,15 +1983,21 @@ def _translate_with_metrics(
 
     total_ms = (t_decode - t0) * 1000
     throughput = output_token_count / (total_ms / 1000) if total_ms > 0 else 0
+    # Decode throughput: tokens generated after first token, excluding TTFT
+    decode_gen_ms = generate_ms - ttft_ms
+    decode_throughput = (
+        output_token_count / (decode_gen_ms / 1000) if decode_gen_ms > 0 else 0
+    )
 
     metrics = TranslationMetrics(
         input_tokens=input_token_count,
         output_tokens=output_token_count,
         tokenize_ms=round(tokenize_ms, 3),
-        generate_ms=round(generate_ms, 3),
         ttft_ms=round(ttft_ms, 3),
+        generate_ms=round(generate_ms, 3),
         decode_ms=round(decode_ms, 3),
         total_ms=round(total_ms, 3),
+        decode_throughput_tok_s=round(decode_throughput, 1),
         throughput_tok_s=round(throughput, 1),
     )
 
@@ -1937,6 +2190,17 @@ def translate(req: TranslateRequest):
                 warning=warning_dict,
             )
 
+        try:
+            if event_logger:
+                event_logger.log_translate(
+                    req.text, req.source_lang, req.target_lang,
+                    resp.translation, resp.metrics, MODEL_NAME,
+                    PRECISION, DEVICE, _HW_FINGERPRINT,
+                    warning=warning_dict,
+                )
+        except Exception as _log_err:
+            logger.warning(f"Failed to log translate event: {_log_err}")
+
         return resp
     except HTTPException:
         raise
@@ -1955,12 +2219,99 @@ class BenchmarkRequest(BaseModel):
     filter_params: Optional[list[str]] = None      # e.g. ["600M", "1.3B"]
     filter_precisions: Optional[list[str]] = None   # e.g. ["int8_float16", "float16"]
     filter_devices: Optional[list[str]] = None      # e.g. ["cuda", "cpu"]
+    notes: Optional[str] = None                        # free-text annotation for JSONL provenance
 
 
 class BenchmarkSentenceResult(BaseModel):
     text: str
     translation: str
     metrics: TranslationMetrics
+
+
+class WarmupIteration(BaseModel):
+    iteration: int
+    text: str
+    char_length: int
+    metrics: TranslationMetrics
+    cv_throughput: Optional[float] = None  # coefficient of variation over last 3
+
+
+class WarmupResult(BaseModel):
+    iterations: list[WarmupIteration]
+    converged: bool
+    converged_at: Optional[int] = None  # iteration index where CV < threshold
+    final_throughput_tok_s: float        # mean of last 3 iterations
+    total_warmup_ms: float
+
+
+WARMUP_SENTENCES = [
+    "Hello.",
+    "The quick brown fox jumps over the lazy dog near the river bank.",
+    (
+        "In a groundbreaking development, researchers at the university have "
+        "discovered a novel approach to renewable energy storage that could "
+        "transform how cities manage their electrical grids during peak demand "
+        "periods throughout the summer months."
+    ),
+]
+
+
+def _run_warmup(sp, trans, dev, source_lang, target_lang, max_iters=5, cv_threshold=0.10):
+    """Run multi-stage warmup with convergence detection.
+
+    Cycles through short/medium/long sentences. Convergence is measured via
+    coefficient of variation of **decode throughput** (TTFT-excluded) over the
+    last 3 iterations, which is independent of sentence length and reflects
+    pure GPU/CPU kernel warmth.
+    """
+    iterations = []
+    decode_throughputs: list[float] = []
+    converged_at = None
+    t0 = time.perf_counter()
+
+    for i in range(max_iters):
+        text = WARMUP_SENTENCES[i % len(WARMUP_SENTENCES)]
+        resp = _translate_with_metrics(text, source_lang, target_lang, sp, trans, dev)
+        dtp = resp.metrics.decode_throughput_tok_s
+        decode_throughputs.append(dtp)
+
+        cv = None
+        if len(decode_throughputs) >= 3:
+            last3 = decode_throughputs[-3:]
+            mean = sum(last3) / 3
+            std = (sum((x - mean) ** 2 for x in last3) / 3) ** 0.5
+            cv = std / mean if mean > 0 else 0.0
+
+        iterations.append(WarmupIteration(
+            iteration=i,
+            text=text,
+            char_length=len(text),
+            metrics=resp.metrics,
+            cv_throughput=round(cv, 4) if cv is not None else None,
+        ))
+
+        logger.info(
+            f"    warmup[{i}] {len(text):>3}ch: {dtp} d.tok/s "
+            f"(e2e={resp.metrics.throughput_tok_s} tok/s) "
+            f"ttft={resp.metrics.ttft_ms:.1f}ms"
+            + (f" cv={cv:.3f}" if cv is not None else "")
+        )
+
+        if cv is not None and cv < cv_threshold and converged_at is None:
+            converged_at = i
+            break
+
+    total_ms = (time.perf_counter() - t0) * 1000
+    last3 = decode_throughputs[-3:] if len(decode_throughputs) >= 3 else decode_throughputs
+    final_tp = round(sum(last3) / len(last3), 1)
+
+    return WarmupResult(
+        iterations=iterations,
+        converged=converged_at is not None,
+        converged_at=converged_at,
+        final_throughput_tok_s=final_tp,
+        total_warmup_ms=round(total_ms, 1),
+    )
 
 
 class BenchmarkComboResult(BaseModel):
@@ -1970,7 +2321,7 @@ class BenchmarkComboResult(BaseModel):
     precision: str
     status: str  # "ok" or "X (reason)"
     load_time_s: Optional[float] = None
-    cold_start: Optional[BenchmarkSentenceResult] = None  # warmup / first-inference metrics
+    cold_start: Optional[WarmupResult] = None  # multi-stage warmup with convergence detection
     sentence_results: list[BenchmarkSentenceResult] = []
     avg_metrics: Optional[dict] = None
     pressure_snapshot: Optional[dict] = None
@@ -1987,6 +2338,7 @@ class BenchmarkResponse(BaseModel):
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     resources_at_completion: Optional[dict] = None
+    run_id: Optional[str] = None
 
 
 @dataclass
@@ -2130,6 +2482,10 @@ def benchmark(req: BenchmarkRequest):
             completed_at=time.time(),
             hw_fingerprint=hw_fp,
         )
+        if event_logger:
+            run_id = event_logger.log_run(req, result, hw_fp, notes=req.notes)
+            result.run_id = run_id
+            result_dict["run_id"] = run_id
         _benchmark_future["result"] = result_dict
         _benchmark_future["event"].set()
         return result
@@ -2293,22 +2649,13 @@ def _run_benchmark(req: BenchmarkRequest, hw_fingerprint: str) -> BenchmarkRespo
                             f"VRAM={vram_post} MB, RAM RSS={ram_post} MB — running warmup..."
                         )
 
-                    # Cold start: first inference after model load (CUDA context init,
+                    # Multi-stage warmup with convergence detection (CUDA context init,
                     # kernel JIT, memory pool warmup). Captured separately from warm runs.
-                    warmup_text = req.sentences[0] if req.sentences else "Hello, how are you?"
-                    warmup_resp = _translate_with_metrics(
-                        warmup_text, req.source_lang, req.target_lang,
-                        sp, trans, dev,
-                    )
-                    cold_start = BenchmarkSentenceResult(
-                        text=warmup_text,
-                        translation=warmup_resp.translation,
-                        metrics=warmup_resp.metrics,
-                    )
+                    cold_start = _run_warmup(sp, trans, dev, req.source_lang, req.target_lang)
                     logger.info(
-                        f"    cold_start: {warmup_resp.metrics.throughput_tok_s} tok/s "
-                        f"ttft={warmup_resp.metrics.ttft_ms:.1f}ms "
-                        f"total={warmup_resp.metrics.total_ms:.1f}ms"
+                        f"    warmup: {'converged' if cold_start.converged else 'did not converge'} "
+                        f"at iter {cold_start.converged_at}, final={cold_start.final_throughput_tok_s} tok/s, "
+                        f"total={cold_start.total_warmup_ms:.0f}ms"
                     )
 
                     combo_snap = resource_monitor.snapshot().to_dict() if resource_monitor else None
@@ -2366,8 +2713,9 @@ def _run_benchmark(req: BenchmarkRequest, hw_fingerprint: str) -> BenchmarkRespo
                     avg = {}
                     if n > 0:
                         for fld in ["input_tokens", "output_tokens", "tokenize_ms",
-                                      "generate_ms", "ttft_ms", "decode_ms",
-                                      "total_ms", "throughput_tok_s"]:
+                                      "ttft_ms", "generate_ms", "decode_ms",
+                                      "total_ms", "decode_throughput_tok_s",
+                                      "throughput_tok_s"]:
                             vals = [getattr(sr.metrics, fld) for sr in sentence_results]
                             avg[fld] = round(sum(vals) / n, 2)
 
@@ -2383,12 +2731,13 @@ def _run_benchmark(req: BenchmarkRequest, hw_fingerprint: str) -> BenchmarkRespo
                         avg_metrics=avg,
                         post_load_snapshot=combo_snap,
                     ))
-                    cold_tp = cold_start.metrics.throughput_tok_s
-                    warm_tp = avg.get('throughput_tok_s', 0)
-                    penalty = f"{cold_tp/warm_tp:.0%}" if warm_tp else "?"
+                    cold_dtp = cold_start.iterations[0].metrics.decode_throughput_tok_s if cold_start.iterations else 0
+                    warm_dtp = avg.get('decode_throughput_tok_s', 0)
+                    penalty = f"{cold_dtp/warm_dtp:.0%}" if warm_dtp else "?"
                     logger.info(
                         f"  {dev_label} {spec['label']} {prec}: done — "
-                        f"warm={warm_tp} tok/s, cold={cold_tp} tok/s ({penalty} of warm)"
+                        f"warm={warm_dtp} d.tok/s, cold={cold_dtp} d.tok/s ({penalty} of warm) "
+                        f"[e2e: warm={avg.get('throughput_tok_s', 0)} cold={cold_start.iterations[0].metrics.throughput_tok_s if cold_start.iterations else 0}]"
                     )
 
                     del sp, trans
@@ -2438,14 +2787,17 @@ def _run_benchmark(req: BenchmarkRequest, hw_fingerprint: str) -> BenchmarkRespo
 def _build_matrices(combos: list[BenchmarkComboResult]) -> dict[str, list[list[str]]]:
     """Build PARAM×PRECISION matrices for each metric."""
     metrics_to_show = {
-        "Throughput (tok/s)": "throughput_tok_s",
-        "Cold Start Throughput (tok/s)": "__cold_throughput",
+        "Decode Throughput (tok/s)": "decode_throughput_tok_s",
+        "E2E Throughput (tok/s)": "throughput_tok_s",
+        "Cold Decode Throughput (tok/s)": "__cold_decode_throughput",
         "Cold Start Penalty (%)": "__cold_penalty",
         "TTFT (ms)": "ttft_ms",
         "Cold Start TTFT (ms)": "__cold_ttft",
-        "Total (ms)": "total_ms",
         "Generate (ms)": "generate_ms",
+        "Total (ms)": "total_ms",
         "Model Load (s)": None,
+        "Warmup Converged At": "__warmup_converged_at",
+        "Warmup Total (ms)": "__warmup_total_ms",
         "VRAM Free (MB)": "__vram_free",
         "RAM Available (MB)": "__ram_avail",
     }
@@ -2478,20 +2830,32 @@ def _build_matrices(combos: list[BenchmarkComboResult]) -> dict[str, list[list[s
                     row.append(reason)
                 elif field_name is None:
                     row.append(str(match.load_time_s) if match.load_time_s else "\u2014")
-                elif field_name == "__cold_throughput":
+                elif field_name == "__cold_decode_throughput":
                     cs = match.cold_start
-                    row.append(str(cs.metrics.throughput_tok_s) if cs else "\u2014")
+                    if cs and cs.iterations:
+                        row.append(str(cs.iterations[0].metrics.decode_throughput_tok_s))
+                    else:
+                        row.append("\u2014")
                 elif field_name == "__cold_penalty":
                     cs = match.cold_start
-                    warm = match.avg_metrics.get("throughput_tok_s") if match.avg_metrics else None
-                    if cs and warm and warm > 0:
-                        pct = round(100 * (1 - cs.metrics.throughput_tok_s / warm))
+                    warm = match.avg_metrics.get("decode_throughput_tok_s") if match.avg_metrics else None
+                    if cs and cs.iterations and warm and warm > 0:
+                        pct = round(100 * (1 - cs.iterations[0].metrics.decode_throughput_tok_s / warm))
                         row.append(f"{pct}%")
                     else:
                         row.append("\u2014")
                 elif field_name == "__cold_ttft":
                     cs = match.cold_start
-                    row.append(str(round(cs.metrics.ttft_ms, 1)) if cs else "\u2014")
+                    if cs and cs.iterations:
+                        row.append(str(round(cs.iterations[0].metrics.ttft_ms, 1)))
+                    else:
+                        row.append("\u2014")
+                elif field_name == "__warmup_converged_at":
+                    cs = match.cold_start
+                    row.append(str(cs.converged_at) if cs and cs.converged_at is not None else "\u2014")
+                elif field_name == "__warmup_total_ms":
+                    cs = match.cold_start
+                    row.append(str(cs.total_warmup_ms) if cs else "\u2014")
                 elif field_name == "__vram_free":
                     snap = match.post_load_snapshot
                     row.append(str(snap["vram_free_mb"]) if snap and "vram_free_mb" in snap else "\u2014")
@@ -2516,6 +2880,464 @@ def clear_benchmark_cache():
     _benchmark_cache.clear()
     logger.info(f"Benchmark cache cleared ({count} entries)")
     return {"cleared": True, "entries_removed": count}
+
+
+@app.get("/benchmark/history", dependencies=[Depends(verify_hmac_auth)])
+def benchmark_history(limit: int = 20):
+    """Return recent events from JSONL log (metadata only)."""
+    if not event_logger:
+        return {"runs": []}
+    events = event_logger.get_all_events()
+    runs = []
+    for entry in events:
+        etype = entry.get("type", "benchmark")
+        meta: dict = {
+            "run_id": entry["run_id"],
+            "timestamp": entry["timestamp"],
+            "type": etype,
+            "provenance": entry["provenance"],
+        }
+        if etype == "benchmark":
+            meta["notes"] = entry.get("request", {}).get("notes")
+            meta["combo_count"] = len(entry.get("combos", []))
+            meta["duration_s"] = entry.get("duration_s")
+        else:
+            req = entry.get("request", {})
+            resp_metrics = entry.get("response", {}).get("metrics", {})
+            meta["direction"] = f"{req.get('source_lang', '?')}→{req.get('target_lang', '?')}"
+            meta["throughput_tok_s"] = resp_metrics.get("throughput_tok_s")
+        runs.append(meta)
+    return {"runs": runs[-limit:]}
+
+
+@app.get("/benchmark/runs/{run_id}", dependencies=[Depends(verify_hmac_auth)])
+def get_benchmark_run(run_id: str):
+    """Return full JSON for a single event by run_id."""
+    if not event_logger:
+        raise HTTPException(status_code=404, detail="Event log not available")
+    event = event_logger.get_event_by_id(run_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail=f"Event {run_id} not found")
+    return event
+
+
+# ── HTML rendering helpers ──────────────────────────────────────────
+
+
+def _html_escape(s: str) -> str:
+    """Minimal XSS prevention for user text in HTML output."""
+    return (
+        str(s)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#x27;")
+    )
+
+
+_HTML_STYLE = """
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; padding: 2rem; line-height: 1.6; }
+  h1 { font-size: 1.5rem; margin-bottom: 1rem; color: #38bdf8; }
+  h2 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; color: #7dd3fc; }
+  .card { background: #1e293b; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+  .stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .stat { background: #1e293b; border-radius: 8px; padding: 0.75rem 1rem; min-width: 120px; text-align: center; }
+  .stat-value { font-size: 1.5rem; font-weight: bold; color: #38bdf8; }
+  .stat-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; font-size: 0.875rem; }
+  th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #334155; }
+  th { color: #94a3b8; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
+  tr:hover { background: #334155; }
+  a { color: #38bdf8; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .bar { height: 6px; border-radius: 3px; margin-top: 4px; }
+  details { margin-bottom: 0.5rem; }
+  summary { cursor: pointer; padding: 0.5rem; background: #1e293b; border-radius: 6px; }
+  summary:hover { background: #334155; }
+  pre { background: #0f172a; padding: 0.75rem; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; white-space: pre-wrap; word-break: break-word; }
+  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+  .badge-benchmark { background: #3b82f6; color: white; }
+  .badge-translate { background: #10b981; color: white; }
+  .badge-gpu { background: #22c55e; color: #0f172a; }
+  .badge-cpu { background: #64748b; color: white; }
+  .badge-warm { background: #f59e0b; color: #0f172a; }
+  .badge-cold { background: #6366f1; color: white; }
+  .warmup-table { font-size: 0.8rem; margin-top: 0.5rem; }
+  .warmup-table th { font-size: 0.7rem; }
+  .cv-good { color: #22c55e; }
+  .cv-bad { color: #f59e0b; }
+  .cold-warm { font-size: 0.8rem; color: #94a3b8; margin-top: 0.25rem; }
+  .filter-info { background: #1e293b; padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.8rem; color: #94a3b8; }
+</style>
+"""
+
+
+def _render_single_run_html(event: dict) -> str:
+    """Render a single event (benchmark or translate) as a self-contained HTML page."""
+    etype = event.get("type", "benchmark")
+    run_id = _html_escape(event.get("run_id", "?"))
+    timestamp = _html_escape(event.get("timestamp", "?"))
+    prov = event.get("provenance", {})
+
+    provenance_rows = "".join(
+        f"<tr><td>{_html_escape(k)}</td><td>{_html_escape(v)}</td></tr>"
+        for k, v in prov.items()
+    )
+
+    badge_cls = "badge-benchmark" if etype == "benchmark" else "badge-translate"
+    header = f'<span class="badge {badge_cls}">{_html_escape(etype)}</span> {run_id}'
+
+    body_content = ""
+
+    if etype == "translate":
+        req = event.get("request", {})
+        resp = event.get("response", {})
+        metrics = resp.get("metrics", {})
+
+        # Ordered metrics: time progression left→right
+        metrics_ordered = [
+            ("Input Tokens", metrics.get("input_tokens", "")),
+            ("Tokenize (ms)", metrics.get("tokenize_ms", "")),
+            ("TTFT (ms)", metrics.get("ttft_ms", "")),
+            ("Generate (ms)", metrics.get("generate_ms", "")),
+            ("Decode (ms)", metrics.get("decode_ms", "")),
+            ("Output Tokens", metrics.get("output_tokens", "")),
+            ("Total (ms)", metrics.get("total_ms", "")),
+            ("Decode Throughput (tok/s)", metrics.get("decode_throughput_tok_s", "")),
+            ("E2E Throughput (tok/s)", metrics.get("throughput_tok_s", "")),
+        ]
+
+        body_content = f"""
+        <div class="card">
+          <h2>Request</h2>
+          <p><strong>{_html_escape(req.get('source_lang', '?'))} → {_html_escape(req.get('target_lang', '?'))}</strong></p>
+          <pre>{_html_escape(req.get('text', ''))}</pre>
+        </div>
+        <div class="card">
+          <h2>Response</h2>
+          <pre>{_html_escape(resp.get('translation', ''))}</pre>
+        </div>
+        <div class="card">
+          <h2>Metrics</h2>
+          <table>
+            <tr><th>Metric</th><th>Value</th></tr>
+            {"".join(f'<tr><td>{_html_escape(str(k))}</td><td>{_html_escape(str(v))}</td></tr>' for k, v in metrics_ordered)}
+          </table>
+        </div>
+        """
+
+        warning = event.get("warning")
+        if warning:
+            body_content += f"""
+            <div class="card" style="border-left: 3px solid #f59e0b;">
+              <h2>Warning</h2>
+              <pre>{_html_escape(json.dumps(warning, indent=2))}</pre>
+            </div>
+            """
+
+    elif etype == "benchmark":
+        combos = event.get("combos", [])
+        hardware = event.get("hardware", {})
+        req = event.get("request", {})
+        duration = event.get("duration_s")
+
+        hw_html = ""
+        if hardware:
+            hw_html = f"""
+            <div class="card">
+              <h2>Hardware</h2>
+              <pre>{_html_escape(json.dumps(hardware, indent=2))}</pre>
+            </div>
+            """
+
+        combo_rows = ""
+        warmup_sections = ""
+        for i, c in enumerate(combos):
+            avg = c.get("avg_metrics", {})
+            cold = c.get("cold_start", {}) or {}
+            load_time = c.get("load_time_s", "")
+            device_raw = c.get("device", "")
+            device_cls = "badge-gpu" if "cuda" in str(device_raw).lower() else "badge-cpu"
+            device_label = "GPU" if "cuda" in str(device_raw).lower() else "CPU"
+
+            # Decode throughput (TTFT-free) — the primary perf metric
+            decode_tp = avg.get("decode_throughput_tok_s", "")
+            e2e_tp = avg.get("throughput_tok_s", "")
+            ttft = avg.get("ttft_ms", "")
+            gen_ms = avg.get("generate_ms", "")
+            total_ms = avg.get("total_ms", "")
+
+            # Cold vs warm using decode throughput
+            cold_dtp = cold.get("final_throughput_tok_s")  # now decode throughput after backfill
+            ratio_html = ""
+            if cold_dtp and decode_tp and isinstance(decode_tp, (int, float)) and decode_tp > 0:
+                ratio = round(cold_dtp / decode_tp * 100)
+                ratio_html = f' <span class="cold-warm">({ratio}% of warm)</span>'
+
+            converged = cold.get("converged")
+            conv_html = ""
+            if converged is not None:
+                if converged:
+                    conv_at = cold.get("converged_at", "?")
+                    conv_html = f'<span class="badge badge-warm">WARM</span> <span style="font-size:0.75rem;color:#94a3b8;">iter {conv_at}</span>'
+                else:
+                    conv_html = f'<span class="badge badge-cold">COLD</span>'
+
+            combo_rows += f"""<tr>
+              <td><span class="badge {device_cls}">{device_label}</span></td>
+              <td>{_html_escape(c.get('model_label', ''))}</td>
+              <td>{_html_escape(c.get('precision', ''))}</td>
+              <td>{_html_escape(str(load_time))}</td>
+              <td>{_html_escape(str(ttft))}</td>
+              <td>{_html_escape(str(gen_ms))}</td>
+              <td>{_html_escape(str(total_ms))}</td>
+              <td>{_html_escape(str(decode_tp))}{ratio_html}</td>
+              <td>{_html_escape(str(e2e_tp))}</td>
+              <td>{conv_html}</td>
+            </tr>"""
+
+            # Warmup iteration details
+            iterations = cold.get("iterations", [])
+            if iterations:
+                warmup_ms = cold.get("total_warmup_ms", "")
+                iter_rows = ""
+                for it in iterations:
+                    m = it.get("metrics", {})
+                    cv = it.get("cv_throughput")
+                    cv_str = f'{cv:.3f}' if cv is not None else "—"
+                    cv_cls = "cv-good" if cv is not None and cv < 0.10 else "cv-bad" if cv is not None else ""
+                    d_tp = m.get("decode_throughput_tok_s", "")
+                    e_tp = m.get("throughput_tok_s", "")
+                    iter_rows += f"""<tr>
+                      <td>{it.get('iteration', '')}</td>
+                      <td>{_html_escape(it.get('text', '')[:40])}{'…' if len(it.get('text', '')) > 40 else ''}</td>
+                      <td>{it.get('char_length', '')}</td>
+                      <td>{m.get('input_tokens', '')}</td>
+                      <td>{m.get('output_tokens', '')}</td>
+                      <td>{m.get('ttft_ms', '')}</td>
+                      <td>{m.get('generate_ms', '')}</td>
+                      <td>{m.get('total_ms', '')}</td>
+                      <td>{d_tp}</td>
+                      <td>{e_tp}</td>
+                      <td class="{cv_cls}">{cv_str}</td>
+                    </tr>"""
+
+                combo_label = f"{_html_escape(c.get('model_label', ''))} {_html_escape(c.get('precision', ''))} {device_label}"
+                warmup_sections += f"""
+                <details>
+                  <summary>{combo_label} — {len(iterations)} iters, {warmup_ms}ms {conv_html}</summary>
+                  <table class="warmup-table">
+                    <tr><th>Iter</th><th>Text</th><th>Chars</th><th>In Tok</th><th>Out Tok</th><th>TTFT (ms)</th><th>Gen (ms)</th><th>Total (ms)</th><th>Decode tok/s</th><th>E2E tok/s</th><th>CV (decode)</th></tr>
+                    {iter_rows}
+                  </table>
+                </details>
+                """
+
+        notes_html = ""
+        if req.get("notes"):
+            notes_html = f'<p style="color:#94a3b8;font-style:italic;">Notes: {_html_escape(req["notes"])}</p>'
+
+        body_content = f"""
+        {hw_html}
+        {notes_html}
+        <div class="card">
+          <h2>Combos ({len(combos)} successful){f' — {duration}s total' if duration else ''}</h2>
+          <table>
+            <tr><th>Device</th><th>Model</th><th>Precision</th><th>Load (s)</th><th>TTFT (ms)</th><th>Gen (ms)</th><th>Total (ms)</th><th>Decode tok/s</th><th>E2E tok/s</th><th>Warmup</th></tr>
+            {combo_rows}
+          </table>
+        </div>
+        {"" if not warmup_sections else f'''
+        <div class="card">
+          <h2>Warmup Details</h2>
+          {warmup_sections}
+        </div>
+        '''}
+        """
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event {run_id}</title>
+{_HTML_STYLE}
+</head>
+<body>
+  <h1>{header}</h1>
+  <p style="color:#94a3b8;margin-bottom:1rem;">{timestamp}</p>
+  <div class="card">
+    <h2>Provenance</h2>
+    <table>{provenance_rows}</table>
+  </div>
+  {body_content}
+  <p style="margin-top:2rem;"><a href="/benchmark/report">← All runs</a></p>
+</body></html>"""
+
+
+def _render_all_runs_html(events: list[dict], filters: dict) -> str:
+    """Render an overview HTML dashboard of all events."""
+    benchmarks = [e for e in events if e.get("type", "benchmark") == "benchmark"]
+    translates = [e for e in events if e.get("type") == "translate"]
+
+    # Translation aggregate stats
+    latencies = sorted([
+        e.get("response", {}).get("metrics", {}).get("total_ms", 0)
+        for e in translates if e.get("response", {}).get("metrics", {}).get("total_ms")
+    ])
+    throughputs = [
+        e.get("response", {}).get("metrics", {}).get("throughput_tok_s", 0)
+        for e in translates if e.get("response", {}).get("metrics", {}).get("throughput_tok_s")
+    ]
+
+    def percentile(arr: list, p: float) -> float:
+        if not arr:
+            return 0.0
+        idx = int(len(arr) * p / 100)
+        idx = min(idx, len(arr) - 1)
+        return arr[idx]
+
+    p50 = round(percentile(latencies, 50), 1)
+    p95 = round(percentile(latencies, 95), 1)
+    p99 = round(percentile(latencies, 99), 1)
+    avg_throughput = round(sum(throughputs) / len(throughputs), 1) if throughputs else 0
+
+    # Filter info
+    filter_html = ""
+    active_filters = {k: v for k, v in filters.items() if v}
+    if active_filters:
+        parts = ", ".join(f"{k}={_html_escape(v)}" for k, v in active_filters.items())
+        filter_html = f'<div class="filter-info">Active filters: {parts}</div>'
+
+    # Timeline table (recent 100)
+    recent = events[-100:]
+    recent.reverse()
+    timeline_rows = ""
+    for e in recent:
+        etype = e.get("type", "benchmark")
+        badge_cls = "badge-benchmark" if etype == "benchmark" else "badge-translate"
+        rid = _html_escape(e.get("run_id", "?"))
+        ts = _html_escape(e.get("timestamp", "?")[:19])
+
+        if etype == "benchmark":
+            detail = f'{len(e.get("combos", []))} combos'
+            dur = e.get("duration_s")
+            if dur:
+                detail += f", {dur}s"
+        else:
+            req = e.get("request", {})
+            m = e.get("response", {}).get("metrics", {})
+            detail = f'{_html_escape(req.get("source_lang", "?"))}→{_html_escape(req.get("target_lang", "?"))}'
+            tp = m.get("throughput_tok_s")
+            if tp:
+                detail += f", {tp} tok/s"
+
+        timeline_rows += f"""<tr>
+          <td><span class="badge {badge_cls}">{_html_escape(etype)}</span></td>
+          <td>{ts}</td>
+          <td>{detail}</td>
+          <td><a href="/benchmark/runs/{rid}/report">view</a></td>
+        </tr>"""
+
+    # Benchmark details
+    benchmark_details = ""
+    for b in reversed(benchmarks[-20:]):
+        rid = _html_escape(b.get("run_id", "?"))
+        ts = _html_escape(b.get("timestamp", "?")[:19])
+        combos = b.get("combos", [])
+        notes = b.get("request", {}).get("notes", "")
+        combo_rows = ""
+        for c in combos:
+            avg = c.get("avg_metrics", {})
+            device_raw = c.get("device", "")
+            device_cls = "badge-gpu" if "cuda" in str(device_raw).lower() else "badge-cpu"
+            device_label = "GPU" if "cuda" in str(device_raw).lower() else "CPU"
+            combo_rows += f"""<tr>
+              <td><span class="badge {device_cls}">{device_label}</span></td>
+              <td>{_html_escape(c.get('model_label', ''))}</td>
+              <td>{_html_escape(c.get('precision', ''))}</td>
+              <td>{_html_escape(str(avg.get('ttft_ms', '')))}</td>
+              <td>{_html_escape(str(avg.get('total_ms', '')))}</td>
+              <td>{_html_escape(str(avg.get('decode_throughput_tok_s', '')))}</td>
+              <td>{_html_escape(str(avg.get('throughput_tok_s', '')))}</td>
+            </tr>"""
+
+        label = f"{ts} — {len(combos)} combos"
+        if notes:
+            label += f" — {_html_escape(notes[:60])}"
+        benchmark_details += f"""
+        <details>
+          <summary>{label} <a href="/benchmark/runs/{rid}/report" style="font-size:0.75rem;">[full report]</a></summary>
+          <table style="margin-top:0.5rem;">
+            <tr><th>Device</th><th>Model</th><th>Precision</th><th>TTFT (ms)</th><th>Total (ms)</th><th>Decode tok/s</th><th>E2E tok/s</th></tr>
+            {combo_rows}
+          </table>
+        </details>
+        """
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NLLB Event Dashboard</title>
+{_HTML_STYLE}
+</head>
+<body>
+  <h1>NLLB Event Dashboard</h1>
+  {filter_html}
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value">{len(events)}</div><div class="stat-label">Total Events</div></div>
+    <div class="stat"><div class="stat-value">{len(benchmarks)}</div><div class="stat-label">Benchmarks</div></div>
+    <div class="stat"><div class="stat-value">{len(translates)}</div><div class="stat-label">Translations</div></div>
+  </div>
+
+  {"" if not translates else f'''
+  <h2>Translation Aggregates</h2>
+  <div class="stats">
+    <div class="stat"><div class="stat-value">{p50}</div><div class="stat-label">p50 latency (ms)</div></div>
+    <div class="stat"><div class="stat-value">{p95}</div><div class="stat-label">p95 latency (ms)</div></div>
+    <div class="stat"><div class="stat-value">{p99}</div><div class="stat-label">p99 latency (ms)</div></div>
+    <div class="stat"><div class="stat-value">{avg_throughput}</div><div class="stat-label">avg throughput (tok/s)</div></div>
+  </div>
+  '''}
+
+  <h2>Timeline (recent 100)</h2>
+  <div class="card">
+    <table>
+      <tr><th>Type</th><th>Time</th><th>Detail</th><th></th></tr>
+      {timeline_rows}
+    </table>
+  </div>
+
+  {"" if not benchmarks else f'''
+  <h2>Benchmark Runs ({len(benchmarks)})</h2>
+  {benchmark_details}
+  '''}
+</body></html>"""
+
+
+@app.get("/benchmark/runs/{run_id}/report", dependencies=[Depends(verify_hmac_auth)])
+def benchmark_run_report(run_id: str):
+    """Render a single event as an HTML report."""
+    if not event_logger:
+        raise HTTPException(status_code=404, detail="Event log not available")
+    event = event_logger.get_event_by_id(run_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail=f"Event {run_id} not found")
+    return HTMLResponse(content=_render_single_run_html(event))
+
+
+@app.get("/benchmark/report", dependencies=[Depends(verify_hmac_auth)])
+def benchmark_report(type: Optional[str] = None, since: Optional[str] = None, until: Optional[str] = None):
+    """Render an HTML dashboard of all events with optional filters."""
+    if not event_logger:
+        return HTMLResponse(content="<html><body><p>Event log not available</p></body></html>")
+    events = event_logger.get_all_events(event_type=type)
+    if since:
+        events = [e for e in events if e.get("timestamp", "") >= since]
+    if until:
+        events = [e for e in events if e.get("timestamp", "") <= until]
+    filters = {"type": type, "since": since, "until": until}
+    return HTMLResponse(content=_render_all_runs_html(events, filters))
 
 
 if __name__ == "__main__":
