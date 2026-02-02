@@ -39,7 +39,8 @@ const nllbAgent = new https.Agent({ rejectUnauthorized: false });
 // ── HMAC auth header generation ─────────────────────────────────────
 
 function makeHmacAuthHeader(secret: string): string {
-  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const MS_PER_SECOND = 1_000;
+  const timestamp = Math.floor(Date.now() / MS_PER_SECOND).toString();
   const signature = crypto
     .createHmac("sha256", secret)
     .update(timestamp)
