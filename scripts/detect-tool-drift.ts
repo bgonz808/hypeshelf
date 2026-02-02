@@ -14,7 +14,7 @@ import * as path from "path";
 
 // Languages/frameworks we have scanning configured for
 const CONFIGURED_SCANNING = {
-  languages: ["typescript", "javascript"],
+  languages: ["typescript", "javascript", "python"],
   frameworks: ["react", "nextjs", "convex"],
   // These rulesets are in our Semgrep config
   semgrepRulesets: [
@@ -23,6 +23,7 @@ const CONFIGURED_SCANNING = {
     "p/typescript",
     "p/react",
     "p/nextjs",
+    "p/python",
   ],
 };
 

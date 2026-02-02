@@ -113,12 +113,13 @@ jobs:
             --config p/typescript \
             --config p/react \
             --config p/nextjs \
+            --config p/python \
             --config p/jwt \
             --config p/xss \
             --config p/sql-injection \
             --sarif --output semgrep.sarif \
             --metrics=off \
-            src/ convex/
+            src/ convex/ docker/
 
       - name: Upload Semgrep SARIF
         uses: github/codeql-action/upload-sarif@v4
