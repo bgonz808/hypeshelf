@@ -73,7 +73,7 @@ jobs:
           fi
 
       - name: Run Nuclei
-        uses: projectdiscovery/nuclei-action@v2
+        uses: projectdiscovery/nuclei-action@v3
         with:
           target: ${{ steps.target.outputs.url }}
           # Only run critical and high severity templates
