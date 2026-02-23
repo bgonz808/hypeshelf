@@ -89,7 +89,7 @@
     "franc": "6.2.0",
     "husky": "9.1.7",
     "jest-axe": "9.0.0",
-    "jsdom": "25.0.1",
+    "jsdom": "28.1.0",
     "lint-staged": "15.5.2",
     "png-to-ico": "2.1.8",
     "postcss": "8.5.6",
