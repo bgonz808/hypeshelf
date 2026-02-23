@@ -61,7 +61,7 @@
     "next-intl": "4.7.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "tailwind-merge": "2.6.0"
+    "tailwind-merge": "3.5.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.11.0",
